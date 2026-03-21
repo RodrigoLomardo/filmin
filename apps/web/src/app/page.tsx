@@ -7,18 +7,14 @@ import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashbo
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv, MotionLink } from '@/components/motion';
 
-
-
 export default function HomePage() {
-
-  let splashShown = false;
-
   const [showSplash, setShowSplash] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    const shown = sessionStorage.getItem('splash_shown');
+    setShowSplash(!shown);
     setMounted(true);
-    setShowSplash(!splashShown);
   }, []);
 
   if (!mounted) return null;
@@ -28,7 +24,7 @@ export default function HomePage() {
       <AnimatePresence>
         {showSplash && (
           <SplashScreen onFinish={() => {
-            splashShown = true;
+            sessionStorage.setItem('splash_shown', '1');
             setShowSplash(false);
           }} />
         )}
