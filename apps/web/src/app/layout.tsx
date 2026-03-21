@@ -17,6 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <link rel="apple-touch-icon" href="/assets/logo-filmin.png" />
       <body className="min-h-screen bg-black text-white antialiased">
         <Providers>{children}</Providers>
       </body>
