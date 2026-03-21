@@ -1,20 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv, MotionLink } from '@/components/motion';
 
+
+
 export default function HomePage() {
-  const [showSplash, setShowSplash] = useState(true);
+
+  let splashShown = false;
+
+  const [showSplash, setShowSplash] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setShowSplash(!splashShown);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
     <>
       <AnimatePresence>
         {showSplash && (
-          <SplashScreen onFinish={() => setShowSplash(false)} />
+          <SplashScreen onFinish={() => {
+            splashShown = true;
+            setShowSplash(false);
+          }} />
         )}
       </AnimatePresence>
 
