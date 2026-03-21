@@ -150,7 +150,7 @@ export class WatchItemsService {
     watchItem.observacoes = updateWatchItemDto.observacoes !== undefined ? updateWatchItemDto.observacoes : watchItem.observacoes;
     watchItem.posterUrl = updateWatchItemDto.posterUrl !== undefined ? updateWatchItemDto.posterUrl : watchItem.posterUrl;
 
-    if (newTipo === WatchItemTipo.FILME) {
+    if (newTipo === WatchItemTipo.FILME || newTipo === WatchItemTipo.LIVRO) {
       watchItem.notaDele = newNotaDele ?? null;
       watchItem.notaDela = newNotaDela ?? null;
       watchItem.notaGeral = newNotaDele != null && newNotaDela != null
@@ -200,10 +200,13 @@ export class WatchItemsService {
   }
 
   private validateCreateRules(createWatchItemDto: CreateWatchItemDto) {
-    if (createWatchItemDto.tipo === WatchItemTipo.SERIE) {
-      if (createWatchItemDto.notaDele !== undefined || createWatchItemDto.notaDela !== undefined) {
+    if (
+      (createWatchItemDto.tipo === WatchItemTipo.FILME || createWatchItemDto.tipo === WatchItemTipo.LIVRO) &&
+      createWatchItemDto.status === WatchItemStatus.ASSISTIDO
+    ) {
+      if (createWatchItemDto.notaDele === undefined || createWatchItemDto.notaDela === undefined) {
         throw new BadRequestException(
-          'Séries não podem receber notas no cadastro inicial. As notas são definidas por temporada.',
+          'Filmes e livros com status "assistido" devem ter notaDele e notaDela informadas.',
         );
       }
     }
@@ -224,12 +227,12 @@ export class WatchItemsService {
     notaDela?: number | null;
   }) {
     if (
-      payload.tipo === WatchItemTipo.FILME &&
+      (payload.tipo === WatchItemTipo.FILME || payload.tipo === WatchItemTipo.LIVRO) &&
       payload.status === WatchItemStatus.ASSISTIDO &&
       (payload.notaDele == null || payload.notaDela == null)
     ) {
       throw new BadRequestException(
-        'Filmes com status "assistido" devem ter notaDele e notaDela informadas.',
+        'Filmes e livros com status "assistido" devem ter notaDele e notaDela informadas.',
       );
     }
   }

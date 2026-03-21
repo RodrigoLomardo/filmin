@@ -33,3 +33,12 @@ export async function createWatchItem(payload: CreateWatchItemPayload) {
     body: JSON.stringify(payload),
   });
 }
+
+export type UpdateWatchItemPayload = Partial<CreateWatchItemPayload>;
+
+export async function updateWatchItem(id: string, payload: UpdateWatchItemPayload) {
+  return apiFetch<WatchItem>(`/watch-items/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
