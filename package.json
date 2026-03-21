@@ -18,8 +18,8 @@
     "concurrently": "^9.2.1",
     "prettier": "^3.8.1"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
+   "workspaces": [
+    "apps/api",
+    "apps/web"
   ]
 }
