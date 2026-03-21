@@ -13,8 +13,13 @@ import { WatchItem } from '../../watch-items/entities/watch-item.entity';
 
 @Entity('temporadas')
 @Unique(['watchItemId', 'numero'])
+
 @Check(`"numero" > 0`)
-@Check(`"nota" >= 0 AND "nota" <= 10`)
+@Check(`"nota_dele" IS NULL OR ("nota_dele" >= 0 AND "nota_dele" <= 10)`)
+@Check(`"nota_dela" IS NULL OR ("nota_dela" >= 0 AND "nota_dela" <= 10)`)
+@Check(`"nota_geral" IS NULL OR ("nota_geral" >= 0 AND "nota_geral" <= 10)`)
+
+
 export class Temporada {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -31,8 +36,32 @@ export class Temporada {
   @Column({ type: 'int' })
   numero: number;
 
-  @Column({ type: 'decimal', precision: 3, scale: 1 })
-  nota: number;
+  @Column({
+    name: 'nota_dele',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    nullable: true,
+  })
+  notaDele?: number | null;
+
+  @Column({
+    name: 'nota_dela',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    nullable: true,
+  })
+  notaDela?: number | null;
+
+  @Column({
+    name: 'nota_geral',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    nullable: true,
+  })
+  notaGeral?: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

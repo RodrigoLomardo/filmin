@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Genero } from '../generos/entities/genero.entity';
 import { WatchItemStatus } from '../../common/enums/watch-item-status.enum';
 import { WatchItemTipo } from '../../common/enums/watch-item-tipo.enum';
@@ -28,16 +28,21 @@ export class WatchItemsService {
 
     this.validateCreateRules(createWatchItemDto);
 
+    const isFilme = createWatchItemDto.tipo === WatchItemTipo.FILME;
+
+    const notaGeral = isFilme
+      ? this.calcularNotaGeralFilme(createWatchItemDto.notaDele!, createWatchItemDto.notaDela!)
+      : null;
+
     const watchItem = this.watchItemRepository.create({
       titulo: createWatchItemDto.titulo,
       tituloOriginal: createWatchItemDto.tituloOriginal,
       anoLancamento: createWatchItemDto.anoLancamento,
       tipo: createWatchItemDto.tipo,
       status: createWatchItemDto.status,
-      notaGeral:
-        createWatchItemDto.tipo === WatchItemTipo.FILME
-          ? createWatchItemDto.notaGeral ?? null
-          : null,
+      notaDele: isFilme ? createWatchItemDto.notaDele ?? null : null,
+      notaDela: isFilme ? createWatchItemDto.notaDela ?? null : null,
+      notaGeral,
       dataAssistida: createWatchItemDto.dataAssistida
         ? new Date(createWatchItemDto.dataAssistida)
         : null,
@@ -70,13 +75,15 @@ export class WatchItemsService {
 
     if (query.search) {
       qb.andWhere(
-        '(watchItem.titulo ILIKE :search OR watchItem.titulo_original ILIKE :search)',
+        '(watchItem.titulo ILIKE :search OR watchItem.tituloOriginal ILIKE :search)',
         { search: `%${query.search}%` },
       );
     }
 
     const sortByMap = {
       titulo: 'watchItem.titulo',
+      notaDele: 'watchItem.notaDele',
+      notaDela: 'watchItem.notaDela',
       notaGeral: 'watchItem.notaGeral',
       dataAssistida: 'watchItem.dataAssistida',
       createdAt: 'watchItem.createdAt',
@@ -92,22 +99,14 @@ export class WatchItemsService {
 
     return {
       data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
   async findOne(id: string) {
     const watchItem = await this.watchItemRepository.findOne({
       where: { id },
-      relations: {
-        generos: true,
-        temporadas: true,
-      },
+      relations: { generos: true, temporadas: true },
     });
 
     if (!watchItem) {
@@ -120,10 +119,7 @@ export class WatchItemsService {
   async update(id: string, updateWatchItemDto: UpdateWatchItemDto) {
     const watchItem = await this.watchItemRepository.findOne({
       where: { id },
-      relations: {
-        generos: true,
-        temporadas: true,
-      },
+      relations: { generos: true, temporadas: true },
     });
 
     if (!watchItem) {
@@ -132,18 +128,10 @@ export class WatchItemsService {
 
     const newTipo = updateWatchItemDto.tipo ?? watchItem.tipo;
     const newStatus = updateWatchItemDto.status ?? watchItem.status;
-    const newNotaGeral =
-      updateWatchItemDto.notaGeral !== undefined
-        ? updateWatchItemDto.notaGeral
-        : watchItem.notaGeral;
+    const newNotaDele = updateWatchItemDto.notaDele !== undefined ? updateWatchItemDto.notaDele : watchItem.notaDele;
+    const newNotaDela = updateWatchItemDto.notaDela !== undefined ? updateWatchItemDto.notaDela : watchItem.notaDela;
 
-    this.validateUpdateRules({
-      ...watchItem,
-      ...updateWatchItemDto,
-      tipo: newTipo,
-      status: newStatus,
-      notaGeral: newNotaGeral,
-    });
+    this.validateUpdateRules({ tipo: newTipo, status: newStatus, notaDele: newNotaDele, notaDela: newNotaDela });
 
     if (updateWatchItemDto.generosIds) {
       const generos = await this.validateAndGetGeneros(updateWatchItemDto.generosIds);
@@ -151,42 +139,29 @@ export class WatchItemsService {
     }
 
     watchItem.titulo = updateWatchItemDto.titulo ?? watchItem.titulo;
-    watchItem.tituloOriginal =
-      updateWatchItemDto.tituloOriginal ?? watchItem.tituloOriginal;
-    watchItem.anoLancamento =
-      updateWatchItemDto.anoLancamento ?? watchItem.anoLancamento;
+    watchItem.tituloOriginal = updateWatchItemDto.tituloOriginal ?? watchItem.tituloOriginal;
+    watchItem.anoLancamento = updateWatchItemDto.anoLancamento ?? watchItem.anoLancamento;
     watchItem.tipo = newTipo;
     watchItem.status = newStatus;
-    watchItem.dataAssistida =
-      updateWatchItemDto.dataAssistida !== undefined
-        ? updateWatchItemDto.dataAssistida
-          ? new Date(updateWatchItemDto.dataAssistida)
-          : null
-        : watchItem.dataAssistida;
-    watchItem.rewatchCount =
-      updateWatchItemDto.rewatchCount ?? watchItem.rewatchCount;
-    watchItem.observacoes =
-      updateWatchItemDto.observacoes !== undefined
-        ? updateWatchItemDto.observacoes
-        : watchItem.observacoes;
-    watchItem.posterUrl =
-      updateWatchItemDto.posterUrl !== undefined
-        ? updateWatchItemDto.posterUrl
-        : watchItem.posterUrl;
+    watchItem.dataAssistida = updateWatchItemDto.dataAssistida !== undefined
+      ? updateWatchItemDto.dataAssistida ? new Date(updateWatchItemDto.dataAssistida) : null
+      : watchItem.dataAssistida;
+    watchItem.rewatchCount = updateWatchItemDto.rewatchCount ?? watchItem.rewatchCount;
+    watchItem.observacoes = updateWatchItemDto.observacoes !== undefined ? updateWatchItemDto.observacoes : watchItem.observacoes;
+    watchItem.posterUrl = updateWatchItemDto.posterUrl !== undefined ? updateWatchItemDto.posterUrl : watchItem.posterUrl;
 
     if (newTipo === WatchItemTipo.FILME) {
-      watchItem.notaGeral =
-        updateWatchItemDto.notaGeral !== undefined
-          ? updateWatchItemDto.notaGeral
-          : watchItem.notaGeral;
+      watchItem.notaDele = newNotaDele ?? null;
+      watchItem.notaDela = newNotaDela ?? null;
+      watchItem.notaGeral = newNotaDele != null && newNotaDela != null
+        ? this.calcularNotaGeralFilme(newNotaDele, newNotaDela)
+        : null;
     }
 
     if (newTipo === WatchItemTipo.SERIE) {
-      const temTemporadas = watchItem.temporadas && watchItem.temporadas.length > 0;
-
-      if (!temTemporadas) {
-        watchItem.notaGeral = null;
-      }
+      // Notas de série são calculadas pelo TemporadasService — não altera aqui
+      watchItem.notaDele = null;
+      watchItem.notaDela = null;
     }
 
     return await this.watchItemRepository.save(watchItem);
@@ -203,9 +178,11 @@ export class WatchItemsService {
 
     await this.watchItemRepository.remove(watchItem);
 
-    return {
-      message: `Watch item com id "${id}" removido com sucesso.`,
-    };
+    return { message: `Watch item com id "${id}" removido com sucesso.` };
+  }
+
+  private calcularNotaGeralFilme(notaDele: number, notaDela: number): number {
+    return Number(((notaDele + notaDela) / 2).toFixed(1));
   }
 
   private async validateAndGetGeneros(generosIds: string[]) {
@@ -216,57 +193,43 @@ export class WatchItemsService {
     });
 
     if (generos.length !== uniqueGeneroIds.length) {
-      throw new BadRequestException(
-        'Um ou mais gêneros informados não existem.',
-      );
+      throw new BadRequestException('Um ou mais gêneros informados não existem.');
     }
 
     return generos;
   }
 
   private validateCreateRules(createWatchItemDto: CreateWatchItemDto) {
-    if (
-      createWatchItemDto.tipo === WatchItemTipo.SERIE &&
-      createWatchItemDto.notaGeral !== undefined
-    ) {
-      throw new BadRequestException(
-        'Séries não podem receber nota_geral no cadastro inicial. A nota será calculada pelas temporadas.',
-      );
+    if (createWatchItemDto.tipo === WatchItemTipo.SERIE) {
+      if (createWatchItemDto.notaDele !== undefined || createWatchItemDto.notaDela !== undefined) {
+        throw new BadRequestException(
+          'Séries não podem receber notas no cadastro inicial. As notas são definidas por temporada.',
+        );
+      }
     }
 
-    if (
-      createWatchItemDto.tipo === WatchItemTipo.FILME &&
-      createWatchItemDto.status === WatchItemStatus.ASSISTIDO &&
-      createWatchItemDto.notaGeral === undefined
-    ) {
-      throw new BadRequestException(
-        'Filmes com status "assistido" devem ter nota_geral informada.',
-      );
+    if (createWatchItemDto.tipo === WatchItemTipo.FILME && createWatchItemDto.status === WatchItemStatus.ASSISTIDO) {
+      if (createWatchItemDto.notaDele === undefined || createWatchItemDto.notaDela === undefined) {
+        throw new BadRequestException(
+          'Filmes com status "assistido" devem ter notaDele e notaDela informadas.',
+        );
+      }
     }
   }
 
   private validateUpdateRules(payload: {
     tipo: WatchItemTipo;
     status: WatchItemStatus;
-    notaGeral?: number | null;
+    notaDele?: number | null;
+    notaDela?: number | null;
   }) {
-    if (
-      payload.tipo === WatchItemTipo.SERIE &&
-      payload.notaGeral !== null &&
-      payload.notaGeral !== undefined
-    ) {
-      throw new BadRequestException(
-        'Séries não podem ter nota_geral definida manualmente.',
-      );
-    }
-
     if (
       payload.tipo === WatchItemTipo.FILME &&
       payload.status === WatchItemStatus.ASSISTIDO &&
-      (payload.notaGeral === null || payload.notaGeral === undefined)
+      (payload.notaDele == null || payload.notaDela == null)
     ) {
       throw new BadRequestException(
-        'Filmes com status "assistido" devem ter nota_geral informada.',
+        'Filmes com status "assistido" devem ter notaDele e notaDela informadas.',
       );
     }
   }

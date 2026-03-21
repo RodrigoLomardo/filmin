@@ -4,9 +4,9 @@ import { Temporada } from './temporada';
 export type WatchItemTipo = 'filme' | 'serie';
 
 export type WatchItemStatus =
-  | 'quero_assistir'
-  | 'assistindo'
   | 'assistido'
+  | 'assistindo'
+  | 'quero_assistir'
   | 'abandonado';
 
 export type WatchItem = {
@@ -16,6 +16,8 @@ export type WatchItem = {
   anoLancamento: number;
   tipo: WatchItemTipo;
   status: WatchItemStatus;
+  notaDele?: number | null;
+  notaDela?: number | null;
   notaGeral?: number | null;
   dataAssistida?: string | null;
   rewatchCount: number;
@@ -43,7 +45,8 @@ export type CreateWatchItemPayload = {
   anoLancamento: number;
   tipo: WatchItemTipo;
   status: WatchItemStatus;
-  notaGeral?: number;
+  notaDele?: number;
+  notaDela?: number;
   dataAssistida?: string;
   rewatchCount?: number;
   observacoes?: string;

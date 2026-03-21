@@ -13,10 +13,17 @@ export class CreateTemporadaDto {
   @Min(1)
   numero: number;
 
+  @ApiProperty({ example: 8.5 })
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(10)
+  notaDele: number;
+
   @ApiProperty({ example: 9.0 })
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
   @Max(10)
-  nota: number;
+  notaDela: number;
 }

@@ -6,6 +6,8 @@ type WatchItemCardProps = {
 };
 
 export function WatchItemCard({ item }: WatchItemCardProps) {
+  const isFilme = item.tipo === 'filme';
+
   return (
     <Card className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -33,7 +35,17 @@ export function WatchItemCard({ item }: WatchItemCardProps) {
       </div>
 
       <div className="flex items-center justify-between text-sm text-zinc-300">
-        <span>Nota: {item.notaGeral ?? '-'}</span>
+        <div className="flex gap-4">
+          {isFilme ? (
+            <>
+              <span>Ele: {item.notaDele ?? '-'}</span>
+              <span>Ela: {item.notaDela ?? '-'}</span>
+              <span className="text-pink-400">Geral: {item.notaGeral ?? '-'}</span>
+            </>
+          ) : (
+            <span className="text-pink-400">Geral: {item.notaGeral ?? '-'}</span>
+          )}
+        </div>
         <span>Rewatch: {item.rewatchCount}</span>
       </div>
     </Card>

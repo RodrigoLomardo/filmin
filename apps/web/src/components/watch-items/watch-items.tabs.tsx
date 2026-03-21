@@ -9,9 +9,9 @@ type WatchItemsTabsProps = {
 };
 
 const tabs: { label: string; value: WatchItemStatus }[] = [
-  { label: 'Quero assistir', value: 'quero_assistir' },
-  { label: 'Assistindo', value: 'assistindo' },
   { label: 'Assistidos', value: 'assistido' },
+  { label: 'Assistindo', value: 'assistindo' },
+  { label: 'Quero assistir', value: 'quero_assistir' },
   { label: 'Abandonados', value: 'abandonado' },
 ];
 

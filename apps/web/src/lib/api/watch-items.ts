@@ -13,8 +13,7 @@ type GetWatchItemsParams = {
   tipo?: WatchItemTipo;
   status?: WatchItemStatus;
   search?: string;
-  sortBy?: 'titulo' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento';
-  sortOrder?: 'ASC' | 'DESC';
+  sortBy?: 'titulo' | 'notaDele' | 'notaDela' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento';
 };
 
 export async function getWatchItems(params: GetWatchItemsParams = {}) {

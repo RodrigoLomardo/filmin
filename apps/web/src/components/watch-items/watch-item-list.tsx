@@ -20,7 +20,7 @@ export function WatchItemsList({ status, tipo = 'todos' }: WatchItemsListProps) 
         status,
         tipo: tipo === 'todos' ? undefined : tipo,
         sortBy: 'createdAt',
-        sortOrder: 'DESC',
+
       }),
   });
 

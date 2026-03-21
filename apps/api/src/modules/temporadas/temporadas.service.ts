@@ -24,9 +24,7 @@ export class TemporadasService {
   async create(createTemporadaDto: CreateTemporadaDto) {
     const watchItem = await this.watchItemRepository.findOne({
       where: { id: createTemporadaDto.watchItemId },
-      relations: {
-        temporadas: true,
-      },
+      relations: { temporadas: true },
     });
 
     if (!watchItem) {
@@ -54,41 +52,40 @@ export class TemporadasService {
       );
     }
 
+    const notaGeral = this.calcularNotaGeralTemporada(
+      createTemporadaDto.notaDele,
+      createTemporadaDto.notaDela,
+    );
+
     const temporada = this.temporadaRepository.create({
       watchItemId: createTemporadaDto.watchItemId,
       numero: createTemporadaDto.numero,
-      nota: createTemporadaDto.nota,
+      notaDele: createTemporadaDto.notaDele,
+      notaDela: createTemporadaDto.notaDela,
+      notaGeral,
     });
 
     const savedTemporada = await this.temporadaRepository.save(temporada);
 
-    await this.recalculateNotaGeral(watchItem.id);
+    await this.recalculateNotaGeralSerie(watchItem.id);
 
     return await this.temporadaRepository.findOne({
       where: { id: savedTemporada.id },
-      relations: {
-        watchItem: true,
-      },
+      relations: { watchItem: true },
     });
   }
 
   async findAll() {
     return await this.temporadaRepository.find({
-      relations: {
-        watchItem: true,
-      },
-      order: {
-        numero: 'ASC',
-      },
+      relations: { watchItem: true },
+      order: { numero: 'ASC' },
     });
   }
 
   async findOne(id: string) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
-      relations: {
-        watchItem: true,
-      },
+      relations: { watchItem: true },
     });
 
     if (!temporada) {
@@ -101,9 +98,7 @@ export class TemporadasService {
   async update(id: string, updateTemporadaDto: UpdateTemporadaDto) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
-      relations: {
-        watchItem: true,
-      },
+      relations: { watchItem: true },
     });
 
     if (!temporada) {
@@ -127,18 +122,31 @@ export class TemporadasService {
       }
     }
 
+    const notaDele = updateTemporadaDto.notaDele ?? temporada.notaDele;
+    const notaDela = updateTemporadaDto.notaDela ?? temporada.notaDela;
+
+    // Se vier uma nota parcial no update, exige que a outra já exista
+    const tentandoAtualizarNota = updateTemporadaDto.notaDele !== undefined || updateTemporadaDto.notaDela !== undefined;
+    if (tentandoAtualizarNota && (notaDele == null || notaDela == null)) {
+      throw new BadRequestException(
+        'Para definir notas, ambas notaDele e notaDela devem estar preenchidas.',
+      );
+    }
+
     temporada.numero = novoNumero;
-    temporada.nota = updateTemporadaDto.nota ?? temporada.nota;
+    temporada.notaDele = notaDele ?? null;
+    temporada.notaDela = notaDela ?? null;
+    temporada.notaGeral = notaDele != null && notaDela != null
+      ? this.calcularNotaGeralTemporada(notaDele, notaDela)
+      : null;
 
     const updatedTemporada = await this.temporadaRepository.save(temporada);
 
-    await this.recalculateNotaGeral(temporada.watchItemId);
+    await this.recalculateNotaGeralSerie(temporada.watchItemId);
 
     return await this.temporadaRepository.findOne({
       where: { id: updatedTemporada.id },
-      relations: {
-        watchItem: true,
-      },
+      relations: { watchItem: true },
     });
   }
 
@@ -154,20 +162,21 @@ export class TemporadasService {
     const watchItemId = temporada.watchItemId;
 
     await this.temporadaRepository.remove(temporada);
-
-    await this.recalculateNotaGeral(watchItemId);
+    await this.recalculateNotaGeralSerie(watchItemId);
 
     return {
       message: `Temporada com id "${id}" removida com sucesso.`,
     };
   }
 
-  private async recalculateNotaGeral(watchItemId: string) {
+  private calcularNotaGeralTemporada(notaDele: number, notaDela: number): number {
+    return Number(((notaDele + notaDela) / 2).toFixed(1));
+  }
+
+  private async recalculateNotaGeralSerie(watchItemId: string) {
     const watchItem = await this.watchItemRepository.findOne({
       where: { id: watchItemId },
-      relations: {
-        temporadas: true,
-      },
+      relations: { temporadas: true },
     });
 
     if (!watchItem) {
@@ -176,27 +185,17 @@ export class TemporadasService {
       );
     }
 
-    if (watchItem.tipo !== WatchItemTipo.SERIE) {
-      throw new BadRequestException(
-        'O recálculo de nota geral por temporadas só pode ser feito para séries.',
-      );
-    }
-
     const temporadas = watchItem.temporadas ?? [];
 
-    if (temporadas.length === 0) {
+    // Considera apenas temporadas que já têm nota geral calculada
+    const temporadasComNota = temporadas.filter(t => t.notaGeral != null);
+
+    if (temporadasComNota.length === 0) {
       watchItem.notaGeral = null;
-      await this.watchItemRepository.save(watchItem);
-      return;
+    } else {
+      const soma = temporadasComNota.reduce((acc, t) => acc + Number(t.notaGeral), 0);
+      watchItem.notaGeral = Number((soma / temporadasComNota.length).toFixed(1));
     }
-
-    const somaNotas = temporadas.reduce(
-      (acc, temporada) => acc + Number(temporada.nota),
-      0,
-    );
-
-    const media = somaNotas / temporadas.length;
-    watchItem.notaGeral = Number(media.toFixed(1));
 
     await this.watchItemRepository.save(watchItem);
   }
