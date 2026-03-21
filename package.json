@@ -1,0 +1,25 @@
+{
+  "name": "filmin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:web": "npm run dev -w @filmin/web",
+    "dev:api": "npm run start:dev -w @filmin/api",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "lint": "npm run lint -ws --if-present",
+    "format": "prettier . --write"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.8.1"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
