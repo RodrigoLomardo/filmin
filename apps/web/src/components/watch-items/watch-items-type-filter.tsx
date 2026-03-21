@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { WatchItemTipo } from '@/types/watch-item';
 
@@ -17,15 +18,16 @@ const options: { label: string; value: TipoFiltro }[] = [
   { label: 'Livros', value: 'livro' },
 ];
 
-export function WatchItemsTypeFilter({
-  value,
-  onChange,
-}: WatchItemsTypeFilterProps) {
+export function WatchItemsTypeFilter({ value, onChange }: WatchItemsTypeFilterProps) {
   return (
-    <div className="flex gap-2">
+    <motion.div
+      className="flex gap-2"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.15, ease: 'easeOut' }}
+    >
       {options.map((option) => {
         const active = option.value === value;
-
         return (
           <button
             key={option.value}
@@ -40,6 +42,6 @@ export function WatchItemsTypeFilter({
           </button>
         );
       })}
-    </div>
+    </motion.div>
   );
 }
