@@ -16,5 +16,13 @@ export class UpdateTemporadaDto {
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
   @Max(10)
-  nota?: number;
+  notaDele?: number;
+
+  @ApiPropertyOptional({ example: 9.0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  @Max(10)
+  notaDela?: number;
 }

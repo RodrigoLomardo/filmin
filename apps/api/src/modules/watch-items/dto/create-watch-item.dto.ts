@@ -43,12 +43,19 @@ export class CreateWatchItemDto {
   @IsEnum(WatchItemStatus)
   status: WatchItemStatus;
 
-  @ApiPropertyOptional({ example: 9.5 })
+  @ApiPropertyOptional({ example: 8.5 })
   @IsOptional()
   @Type(() => Number)
   @Min(0)
   @Max(10)
-  notaGeral?: number;
+  notaDele?: number;
+
+  @ApiPropertyOptional({ example: 9.0 })
+  @IsOptional()
+  @Type(() => Number)
+  @Min(0)
+  @Max(10)
+  notaDela?: number;
 
   @ApiPropertyOptional({ example: '2026-03-20' })
   @IsOptional()

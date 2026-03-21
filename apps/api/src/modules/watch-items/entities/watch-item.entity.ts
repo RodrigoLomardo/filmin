@@ -16,9 +16,14 @@ import { Genero } from '../../generos/entities/genero.entity';
 import { Temporada } from '../../temporadas/entities/temporada.entity';
 
 @Entity('watch_items')
+
 @Check(`"ano_lancamento" >= 1888`)
-@Check(`"nota_geral" IS NULL OR ("nota_geral" >= 0 AND "nota_geral" <= 10)`)
 @Check(`"rewatch_count" >= 0`)
+@Check(`"nota_geral" IS NULL OR ("nota_geral" >= 0 AND "nota_geral" <= 10)`)
+@Check(`"nota_dele" IS NULL OR ("nota_dele" >= 0 AND "nota_dele" <= 10)`)
+@Check(`"nota_dela" IS NULL OR ("nota_dela" >= 0 AND "nota_dela" <= 10)`)
+
+
 export class WatchItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -53,6 +58,24 @@ export class WatchItem {
     enumName: 'watch_item_status_enum',
   })
   status: WatchItemStatus;
+
+  @Column({
+    name: 'nota_dele',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    nullable: true,
+  })
+  notaDele?: number | null;
+
+  @Column({
+    name: 'nota_dela',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    nullable: true,
+  })
+  notaDela?: number | null;
 
   @Column({
     name: 'nota_geral',

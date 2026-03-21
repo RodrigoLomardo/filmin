@@ -30,8 +30,9 @@ export class FindAllWatchItemsQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsIn(['titulo', 'notaGeral', 'dataAssistida', 'createdAt', 'anoLancamento'])
-  sortBy?: 'titulo' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento' = 'createdAt';
+  @IsOptional()
+  @IsIn(['titulo', 'notaDele', 'notaDela', 'notaGeral', 'dataAssistida', 'createdAt', 'anoLancamento'])
+  sortBy?: 'titulo' | 'notaDele' | 'notaDela' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento' = 'createdAt';
 
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
