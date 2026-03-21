@@ -28,8 +28,9 @@ export function CreateWatchItemForm() {
   const [tituloOriginal, setTituloOriginal] = useState('');
   const [anoLancamento, setAnoLancamento] = useState('');
   const [tipo, setTipo] = useState<WatchItemTipo>('filme');
-  const [status, setStatus] = useState<WatchItemStatus>('quero_assistir');
-  const [notaGeral, setNotaGeral] = useState('');
+  const [status, setStatus] = useState<WatchItemStatus>('assistido');
+  const [notaDele, setNotaDele] = useState('');
+  const [notaDela, setNotaDela] = useState('');
   const [dataAssistida, setDataAssistida] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [posterUrl, setPosterUrl] = useState('');
@@ -59,7 +60,8 @@ export function CreateWatchItemForm() {
       setAnoLancamento('');
       setTipo('filme');
       setStatus('quero_assistir');
-      setNotaGeral('');
+      setNotaDele('');
+      setNotaDela('');
       setDataAssistida('');
       setObservacoes('');
       setPosterUrl('');
@@ -71,7 +73,10 @@ export function CreateWatchItemForm() {
     },
   });
 
-  const shouldShowNota = useMemo(() => tipo === 'filme', [tipo]);
+  const shouldShowNotas = useMemo(
+    () => tipo === 'filme' && status === 'assistido',
+    [tipo, status],
+  );
 
   function toggleGenero(id: string) {
     setGenerosIds((prev) =>
@@ -90,7 +95,8 @@ export function CreateWatchItemForm() {
       anoLancamento: Number(anoLancamento),
       tipo,
       status,
-      notaGeral: shouldShowNota && notaGeral ? Number(notaGeral) : undefined,
+      notaDele: shouldShowNotas && notaDele ? Number(notaDele) : undefined,
+      notaDela: shouldShowNotas && notaDela ? Number(notaDela) : undefined,
       dataAssistida: dataAssistida || undefined,
       observacoes: observacoes || undefined,
       posterUrl: posterUrl || undefined,
@@ -145,16 +151,29 @@ export function CreateWatchItemForm() {
           ))}
         </Select>
 
-        {shouldShowNota && (
-          <Input
-            type="number"
-            step="0.1"
-            min="0"
-            max="10"
-            placeholder="Nota geral"
-            value={notaGeral}
-            onChange={(e) => setNotaGeral(e.target.value)}
-          />
+        {shouldShowNotas && (
+          <>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="10"
+              placeholder="Nota dele"
+              value={notaDele}
+              onChange={(e) => setNotaDele(e.target.value)}
+              required
+            />
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="10"
+              placeholder="Nota dela"
+              value={notaDela}
+              onChange={(e) => setNotaDela(e.target.value)}
+              required
+            />
+          </>
         )}
 
         <Input
@@ -177,19 +196,17 @@ export function CreateWatchItemForm() {
 
         <div className="space-y-2">
           <p className="text-sm font-medium">Gêneros</p>
-
           <div className="flex flex-wrap gap-2">
             {generos.map((genero) => {
               const active = generosIds.includes(genero.id);
-
               return (
                 <button
                   type="button"
                   key={genero.id}
                   onClick={() => toggleGenero(genero.id)}
                   className={`rounded-full border px-3 py-2 text-sm transition ${active
-                      ? 'border-pink-500 bg-pink-500 text-white'
-                      : 'border-zinc-700 bg-zinc-900 text-zinc-300'
+                    ? 'border-pink-500 bg-pink-500 text-white'
+                    : 'border-zinc-700 bg-zinc-900 text-zinc-300'
                     }`}
                 >
                   {genero.nome}

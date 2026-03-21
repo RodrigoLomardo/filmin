@@ -7,7 +7,7 @@ import { WatchItemsTypeFilter } from './watch-items-type-filter';
 import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
 
 export function WatchItemsDashboard() {
-  const [status, setStatus] = useState<WatchItemStatus>('quero_assistir');
+  const [status, setStatus] = useState<WatchItemStatus>('assistido');
   const [tipo, setTipo] = useState<WatchItemTipo | 'todos'>('todos');
 
   return (

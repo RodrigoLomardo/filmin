@@ -9,20 +9,19 @@ import { Input } from '@/components/ui/input';
 
 type TemporadaInput = {
   numero: string;
-  nota: string;
+  notaDele: string;
+  notaDela: string;
 };
 
 type CreateTemporadasFormProps = {
   watchItemId: string;
 };
 
-export function CreateTemporadasForm({
-  watchItemId,
-}: CreateTemporadasFormProps) {
+export function CreateTemporadasForm({ watchItemId }: CreateTemporadasFormProps) {
   const queryClient = useQueryClient();
 
   const [temporadas, setTemporadas] = useState<TemporadaInput[]>([
-    { numero: '1', nota: '' },
+    { numero: '1', notaDele: '', notaDela: '' },
   ]);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -30,14 +29,15 @@ export function CreateTemporadasForm({
   const mutation = useMutation({
     mutationFn: async () => {
       for (const temporada of temporadas) {
-        if (!temporada.numero || !temporada.nota) {
+        if (!temporada.numero || !temporada.notaDele || !temporada.notaDela) {
           continue;
         }
 
         await createTemporada({
           watchItemId,
           numero: Number(temporada.numero),
-          nota: Number(temporada.nota),
+          notaDele: Number(temporada.notaDele),
+          notaDela: Number(temporada.notaDela),
         });
       }
     },
@@ -53,7 +53,10 @@ export function CreateTemporadasForm({
   });
 
   function addTemporada() {
-    setTemporadas((prev) => [...prev, { numero: String(prev.length + 1), nota: '' }]);
+    setTemporadas((prev) => [
+      ...prev,
+      { numero: String(prev.length + 1), notaDele: '', notaDela: '' },
+    ]);
   }
 
   function updateTemporada(index: number, field: keyof TemporadaInput, value: string) {
@@ -80,7 +83,7 @@ export function CreateTemporadasForm({
       <div>
         <h2 className="text-lg font-semibold">Cadastrar temporadas</h2>
         <p className="text-sm text-zinc-400">
-          Adicione a nota de cada temporada da série.
+          Adicione as notas de cada temporada da série.
         </p>
       </div>
 
@@ -88,16 +91,14 @@ export function CreateTemporadasForm({
         {temporadas.map((temporada, index) => (
           <div
             key={`${index}-${temporada.numero}`}
-            className="grid grid-cols-1 gap-3 rounded-2xl border border-zinc-800 p-4 md:grid-cols-[1fr_1fr_auto]"
+            className="grid grid-cols-1 gap-3 rounded-2xl border border-zinc-800 p-4 md:grid-cols-[1fr_1fr_1fr_auto]"
           >
             <Input
               type="number"
               min="1"
-              placeholder="Número da temporada"
+              placeholder="Nº da temporada"
               value={temporada.numero}
-              onChange={(e) =>
-                updateTemporada(index, 'numero', e.target.value)
-              }
+              onChange={(e) => updateTemporada(index, 'numero', e.target.value)}
             />
 
             <Input
@@ -105,9 +106,19 @@ export function CreateTemporadasForm({
               min="0"
               max="10"
               step="0.1"
-              placeholder="Nota"
-              value={temporada.nota}
-              onChange={(e) => updateTemporada(index, 'nota', e.target.value)}
+              placeholder="Nota dele"
+              value={temporada.notaDele}
+              onChange={(e) => updateTemporada(index, 'notaDele', e.target.value)}
+            />
+
+            <Input
+              type="number"
+              min="0"
+              max="10"
+              step="0.1"
+              placeholder="Nota dela"
+              value={temporada.notaDela}
+              onChange={(e) => updateTemporada(index, 'notaDela', e.target.value)}
             />
 
             <Button
