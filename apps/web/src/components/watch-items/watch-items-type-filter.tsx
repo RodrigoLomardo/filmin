@@ -14,6 +14,7 @@ const options: { label: string; value: TipoFiltro }[] = [
   { label: 'Todos', value: 'todos' },
   { label: 'Filmes', value: 'filme' },
   { label: 'Séries', value: 'serie' },
+  { label: 'Livros', value: 'livro' },
 ];
 
 export function WatchItemsTypeFilter({

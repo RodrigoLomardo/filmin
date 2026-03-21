@@ -1,7 +1,7 @@
 import { Genero } from './genero';
 import { Temporada } from './temporada';
 
-export type WatchItemTipo = 'filme' | 'serie';
+export type WatchItemTipo = 'filme' | 'serie' | 'livro';
 
 export type WatchItemStatus =
   | 'assistido'

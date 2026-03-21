@@ -18,7 +18,7 @@ const statusOptions: WatchItemStatus[] = [
   'abandonado',
 ];
 
-const tipoOptions: WatchItemTipo[] = ['filme', 'serie'];
+const tipoOptions: WatchItemTipo[] = ['filme', 'serie', 'livro'];
 
 export function CreateWatchItemForm() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export function CreateWatchItemForm() {
   });
 
   const shouldShowNotas = useMemo(
-    () => tipo === 'filme' && status === 'assistido',
+    () => (tipo === 'filme' || tipo === 'livro') && status === 'assistido',
     [tipo, status],
   );
 
