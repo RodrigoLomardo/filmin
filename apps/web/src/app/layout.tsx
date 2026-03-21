@@ -5,6 +5,9 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'Filmin',
   description: 'Seu app pessoal para registrar filmes e séries',
+  icons: {
+    icon: '/assets/logo-filmin.png',
+  },
 };
 
 export default function RootLayout({
