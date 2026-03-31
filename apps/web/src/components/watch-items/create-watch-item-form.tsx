@@ -176,8 +176,8 @@ export function CreateWatchItemForm() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                   >
-                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dele" value={notaDele} onChange={(e) => setNotaDele(e.target.value)} required />
-                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} required />
+                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dele" value={notaDele} onChange={(e) => setNotaDele(e.target.value)} />
+                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} />
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -30,9 +30,12 @@ export class WatchItemsService {
 
     const isFilme = createWatchItemDto.tipo === WatchItemTipo.FILME;
 
-    const notaGeral = isFilme
-      ? this.calcularNotaGeralFilme(createWatchItemDto.notaDele!, createWatchItemDto.notaDela!)
-      : null;
+    const notaGeral =
+      isFilme &&
+      createWatchItemDto.notaDele != null &&
+      createWatchItemDto.notaDela != null
+        ? this.calcularNotaGeralFilme(createWatchItemDto.notaDele, createWatchItemDto.notaDela)
+        : null;
 
     const watchItem = this.watchItemRepository.create({
       titulo: createWatchItemDto.titulo,
@@ -101,6 +104,14 @@ export class WatchItemsService {
       data,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  async getMatchPool() {
+    return this.watchItemRepository.find({
+      where: { status: WatchItemStatus.QUERO_ASSISTIR },
+      relations: { generos: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(id: string) {

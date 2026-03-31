@@ -42,3 +42,7 @@ export async function updateWatchItem(id: string, payload: UpdateWatchItemPayloa
     body: JSON.stringify(payload),
   });
 }
+
+export async function getMatchPool() {
+  return apiFetch<WatchItem[]>('/watch-items/match-pool');
+}

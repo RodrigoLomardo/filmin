@@ -47,6 +47,12 @@ export class WatchItemsController {
     return this.watchItemsService.findAll(query);
   }
 
+  @Get('match-pool')
+  @ApiOperation({ summary: 'Buscar itens para o Modo Match (status: quero_assistir)' })
+  getMatchPool() {
+    return this.watchItemsService.getMatchPool();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar um watch item por id' })
   @ApiParam({ name: 'id', example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
