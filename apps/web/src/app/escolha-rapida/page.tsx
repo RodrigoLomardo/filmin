@@ -399,11 +399,10 @@ export default function EscolhaRapidaPage() {
                   </svg>
 
                   <button
-                    className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${
-                      holding
-                        ? 'bg-pink-500/20 text-pink-400'
-                        : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
-                    }`}
+                    className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${holding
+                      ? 'bg-pink-500/20 text-pink-400'
+                      : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
+                      }`}
                     onMouseDown={startHold}
                     onMouseUp={holding ? finishHold : undefined}
                     onMouseLeave={cancelHold}
@@ -427,7 +426,7 @@ export default function EscolhaRapidaPage() {
             {/* ── Film list ── */}
             <div className="mt-8">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
-                Na fila de espera
+                Filmes que você quer assistir
               </p>
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5"
                 style={{ scrollbarWidth: 'none' }}

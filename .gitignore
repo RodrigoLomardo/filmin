@@ -10,3 +10,4 @@ coverage
 npm-debug.log*
 .vercel
 CLAUDE.md
+roadmap.md
