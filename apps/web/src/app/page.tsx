@@ -1,28 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Heart } from 'lucide-react';
+import { Plus, Heart, Shuffle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
 import { AvatarButton, ProfileModal } from '@/components/profile-modal';
-
-
-
-
-const menuItems = [
-  { label: 'Modo Match', href: '/match', icon: Heart },
-  { label: 'Novo item', href: '/cadastro', icon: Plus },
-];
+import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 
 
 export default function HomePage() {
+  const groupTipo = useGroupTipo();
   const [showSplash, setShowSplash] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const menuItems = [
+    groupTipo === 'duo'
+      ? { label: 'Modo Match', href: '/match', icon: Heart }
+      : { label: 'Escolha Rápida', href: '/escolha-rapida', icon: Shuffle },
+    { label: 'Novo item', href: '/cadastro', icon: Plus },
+  ];
 
   useEffect(() => {
     const shown = sessionStorage.getItem('splash_shown');

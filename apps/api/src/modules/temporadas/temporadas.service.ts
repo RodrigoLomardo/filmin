@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WatchItemTipo } from '../../common/enums/watch-item-tipo.enum';
+import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import { Temporada } from './entities/temporada.entity';
 import { WatchItem } from '../watch-items/entities/watch-item.entity';
 import { CreateTemporadaDto } from './dto/create-temporada.dto';
@@ -21,7 +22,7 @@ export class TemporadasService {
     private readonly watchItemRepository: Repository<WatchItem>,
   ) { }
 
-  async create(createTemporadaDto: CreateTemporadaDto, groupId: string) {
+  async create(createTemporadaDto: CreateTemporadaDto, groupId: string, groupTipo: GroupTipo | null = null) {
     const watchItem = await this.watchItemRepository.findOne({
       where: { id: createTemporadaDto.watchItemId, groupId },
       relations: { temporadas: true },
@@ -52,16 +53,26 @@ export class TemporadasService {
       );
     }
 
-    const notaGeral = this.calcularNotaGeralTemporada(
-      createTemporadaDto.notaDele,
-      createTemporadaDto.notaDela,
-    );
+    const isSolo = groupTipo === GroupTipo.SOLO;
+
+    if (!isSolo && createTemporadaDto.notaDela == null) {
+      throw new BadRequestException(
+        'Em grupos duo, temporadas precisam da nota de ambos.',
+      );
+    }
+
+    const notaDela = isSolo ? null : (createTemporadaDto.notaDela ?? null);
+    const notaGeral = isSolo
+      ? createTemporadaDto.notaDele
+      : notaDela != null
+        ? this.calcularNotaGeralTemporada(createTemporadaDto.notaDele, notaDela)
+        : null;
 
     const temporada = this.temporadaRepository.create({
       watchItemId: createTemporadaDto.watchItemId,
       numero: createTemporadaDto.numero,
       notaDele: createTemporadaDto.notaDele,
-      notaDela: createTemporadaDto.notaDela,
+      notaDela,
       notaGeral,
     });
 
@@ -97,7 +108,7 @@ export class TemporadasService {
     return temporada;
   }
 
-  async update(id: string, updateTemporadaDto: UpdateTemporadaDto, groupId: string) {
+  async update(id: string, updateTemporadaDto: UpdateTemporadaDto, groupId: string, groupTipo: GroupTipo | null = null) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
       relations: { watchItem: true },
@@ -124,21 +135,25 @@ export class TemporadasService {
       }
     }
 
+    const isSolo = groupTipo === GroupTipo.SOLO;
     const notaDele = updateTemporadaDto.notaDele ?? temporada.notaDele;
-    const notaDela = updateTemporadaDto.notaDela ?? temporada.notaDela;
+    const notaDela = isSolo ? null : (updateTemporadaDto.notaDela ?? temporada.notaDela);
 
     const tentandoAtualizarNota = updateTemporadaDto.notaDele !== undefined || updateTemporadaDto.notaDela !== undefined;
-    if (tentandoAtualizarNota && (notaDele == null || notaDela == null)) {
-      throw new BadRequestException(
-        'Para definir notas, ambas notaDele e notaDela devem estar preenchidas.',
-      );
+    if (tentandoAtualizarNota && notaDele == null) {
+      throw new BadRequestException('A nota deve ser informada.');
+    }
+    if (tentandoAtualizarNota && !isSolo && notaDela == null) {
+      throw new BadRequestException('Em grupos duo, ambas as notas devem ser informadas.');
     }
 
     temporada.numero = novoNumero;
     temporada.notaDele = notaDele ?? null;
     temporada.notaDela = notaDela ?? null;
-    temporada.notaGeral = notaDele != null && notaDela != null
-      ? this.calcularNotaGeralTemporada(notaDele, notaDela)
+    temporada.notaGeral = notaDele != null
+      ? isSolo
+        ? notaDele
+        : notaDela != null ? this.calcularNotaGeralTemporada(notaDele, notaDela) : null
       : null;
 
     const updatedTemporada = await this.temporadaRepository.save(temporada);

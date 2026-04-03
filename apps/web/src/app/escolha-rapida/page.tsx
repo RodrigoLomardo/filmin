@@ -1,0 +1,602 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
+import Link from 'next/link';
+import { ArrowLeft, Film, Shuffle, Smartphone, Mouse } from 'lucide-react';
+import { getWatchItems } from '@/lib/api/watch-items';
+import type { WatchItem } from '@/types/watch-item';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Phase = 'idle' | 'spinning' | 'result';
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function EscolhaRapidaPage() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['watch-items', { status: 'quero_assistir', limit: 100 }],
+    queryFn: () => getWatchItems({ status: 'quero_assistir', limit: 100 }),
+  });
+
+  const pool: WatchItem[] = data?.data ?? [];
+
+  // ── Responsive detection ─────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // ── State ────────────────────────────────────────────────────────────────
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [chosen, setChosen] = useState<WatchItem | null>(null);
+  const [displayedItem, setDisplayedItem] = useState<WatchItem | null>(null);
+  const [flipKey, setFlipKey] = useState(0);
+  const spinningRef = useRef(false);
+
+  // ── Animations ───────────────────────────────────────────────────────────
+  const cardAnim = useAnimation();
+  const screenAnim = useAnimation();
+
+  // ── Core spin sequence ───────────────────────────────────────────────────
+  const runSpin = useCallback(async (fromMobile: boolean) => {
+    if (spinningRef.current || pool.length === 0) return;
+    spinningRef.current = true;
+
+    // Mobile: brief screen-shake feedback before spinning
+    if (fromMobile) {
+      await screenAnim.start({
+        x: [0, -10, 10, -8, 8, -4, 4, 0],
+        transition: { duration: 0.35, ease: 'easeOut' },
+      });
+    }
+
+    setPhase('spinning');
+
+    const winner = pickRandom(pool);
+    const totalFlips = 22;
+
+    for (let i = 0; i < totalFlips; i++) {
+      const progress = i / totalFlips;
+      // Ease-out: fast start, slow end
+      const half = (0.04 + progress * progress * 0.22) / 2;
+
+      const item = i === totalFlips - 1 ? winner : pickRandom(pool);
+
+      if (fromMobile) {
+        // Coin-flip: rotateY
+        await cardAnim.start({
+          rotateY: -90,
+          scale: 0.88,
+          filter: 'blur(3px)',
+          transition: { duration: half, ease: 'easeIn' },
+        });
+        setDisplayedItem(item);
+        setFlipKey((k) => k + 1);
+        await cardAnim.start({
+          rotateY: 0,
+          scale: 1,
+          filter: 'blur(0px)',
+          transition: { duration: half, ease: 'easeOut' },
+        });
+      } else {
+        // Horizontal slide: slot-machine
+        await cardAnim.start({
+          x: -60,
+          opacity: 0,
+          scale: 0.92,
+          transition: { duration: half, ease: 'easeIn' },
+        });
+        setDisplayedItem(item);
+        setFlipKey((k) => k + 1);
+        await cardAnim.start({
+          x: 0,
+          opacity: 1,
+          scale: 1,
+          transition: { duration: half, ease: 'easeOut' },
+        });
+      }
+    }
+
+    setChosen(winner);
+    setPhase('result');
+    spinningRef.current = false;
+  }, [pool, cardAnim, screenAnim]);
+
+  // ── Mobile shake detection ───────────────────────────────────────────────
+  const shakeRef = useRef({ lastX: 0, lastY: 0, lastZ: 0, lastTime: 0, count: 0, timer: 0 as unknown as ReturnType<typeof setTimeout> });
+
+  useEffect(() => {
+    if (phase !== 'idle' || !isMobile) return;
+
+    function onMotion(e: DeviceMotionEvent) {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc || acc.x == null) return;
+
+      const now = Date.now();
+      const s = shakeRef.current;
+      if (now - s.lastTime < 80) return;
+      s.lastTime = now;
+
+      const dx = Math.abs((acc.x ?? 0) - s.lastX);
+      const dy = Math.abs((acc.y ?? 0) - s.lastY);
+      const dz = Math.abs((acc.z ?? 0) - s.lastZ);
+      s.lastX = acc.x ?? 0;
+      s.lastY = acc.y ?? 0;
+      s.lastZ = acc.z ?? 0;
+
+      if (dx + dy + dz > 25) {
+        s.count++;
+        clearTimeout(s.timer);
+        s.timer = setTimeout(() => { s.count = 0; }, 700);
+
+        if (s.count >= 3) {
+          s.count = 0;
+          runSpin(true);
+        }
+      }
+    }
+
+    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    if (typeof DME.requestPermission !== 'function') {
+      window.addEventListener('devicemotion', onMotion);
+    }
+
+    return () => window.removeEventListener('devicemotion', onMotion);
+  }, [phase, isMobile, runSpin]);
+
+  // ── iOS permission ───────────────────────────────────────────────────────
+  const [needsPermission, setNeedsPermission] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+
+  useEffect(() => {
+    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    setNeedsPermission(typeof DME.requestPermission === 'function');
+  }, []);
+
+  async function requestMotionPermission() {
+    const DME = DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> };
+    const result = await DME.requestPermission();
+    if (result === 'granted') setPermissionGranted(true);
+  }
+
+  // ── Desktop hold button ──────────────────────────────────────────────────
+  const [holding, setHolding] = useState(false);
+  const [holdFraction, setHoldFraction] = useState(0);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdRafRef = useRef<number>(0);
+  const holdStartRef = useRef(0);
+  const HOLD_DURATION = 1400;
+
+  function startHold() {
+    if (pool.length === 0 || holding) return;
+    setHolding(true);
+    holdStartRef.current = Date.now();
+
+    function tick() {
+      const elapsed = Date.now() - holdStartRef.current;
+      const frac = Math.min(elapsed / HOLD_DURATION, 1);
+      setHoldFraction(frac);
+      if (frac < 1) {
+        holdRafRef.current = requestAnimationFrame(tick);
+      } else {
+        finishHold();
+      }
+    }
+    holdRafRef.current = requestAnimationFrame(tick);
+  }
+
+  function finishHold() {
+    setHolding(false);
+    setHoldFraction(0);
+    cancelAnimationFrame(holdRafRef.current);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    runSpin(false);
+  }
+
+  function cancelHold() {
+    if (!holding) return;
+    setHolding(false);
+    setHoldFraction(0);
+    cancelAnimationFrame(holdRafRef.current);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+  }
+
+  // ─── Loading / error / empty ─────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <motion.div
+          className="h-8 w-8 rounded-full border-2 border-pink-500 border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black px-6 text-center">
+        <p className="text-sm text-white/60">Erro ao carregar a lista.</p>
+        <Link href="/" className="text-sm text-pink-500 underline">Voltar</Link>
+      </div>
+    );
+  }
+
+  if (pool.length === 0) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black px-6 text-center">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-pink-500">Escolha Rápida</p>
+        <p className="text-sm text-white/60">Sua lista &quot;Quero Assistir&quot; está vazia.</p>
+        <Link href="/cadastro" className="mt-2 rounded-full bg-pink-500 px-6 py-2.5 text-sm font-semibold text-white">
+          Adicionar itens
+        </Link>
+      </div>
+    );
+  }
+
+  // ── SVG circle constants ─────────────────────────────────────────────────
+  const R = 58;
+  const CIRC = 2 * Math.PI * R;
+
+  // ─── Render ──────────────────────────────────────────────────────────────
+  return (
+    <motion.div
+      animate={screenAnim}
+      className="relative flex min-h-screen flex-col bg-black select-none"
+    >
+      {/* Ambient background — visible in spinning/result */}
+      <AnimatePresence>
+        {phase !== 'idle' && (
+          <motion.div
+            className="pointer-events-none fixed inset-0 z-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              background: phase === 'result'
+                ? 'radial-gradient(ellipse 70% 50% at 50% 80%, rgba(255,46,166,0.18) 0%, transparent 70%)'
+                : 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,46,166,0.10) 0%, transparent 70%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-30 flex items-center justify-between bg-black/80 px-4 py-4 backdrop-blur-sm">
+        <Link href="/" className="flex items-center gap-1.5 text-white/50 transition-colors hover:text-white">
+          <ArrowLeft size={18} />
+          <span className="text-xs">Voltar</span>
+        </Link>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-pink-500">Escolha Rápida</p>
+        <span className="text-xs text-white/30">{pool.length} {pool.length === 1 ? 'item' : 'itens'}</span>
+      </div>
+
+      {/* ── IDLE ──────────────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {phase === 'idle' && (
+          <motion.div
+            key="idle"
+            className="relative z-10 flex flex-1 flex-col px-5 pb-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.35 }}
+          >
+            {/* ── Presentation ── */}
+            <div className="flex flex-col items-center gap-3 py-10">
+              <motion.div
+                className="relative flex h-20 w-20 items-center justify-center"
+                animate={{ rotate: [0, 8, -8, 4, -4, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+              >
+                <div className="absolute inset-0 rounded-full bg-pink-500/15 blur-xl" />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-pink-500/30">
+                  <Shuffle size={32} className="text-pink-500" />
+                </div>
+              </motion.div>
+
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-white">Escolha Rápida</h2>
+                <p className="mt-1.5 max-w-xs text-sm text-white/50 leading-relaxed">
+                  Sem conseguir decidir o que assistir? Deixa a sorte escolher por você.
+                </p>
+              </div>
+            </div>
+
+            {/* ── How to use ── */}
+            {isMobile ? (
+              // Mobile instruction
+              <div className="flex flex-col gap-3">
+                <motion.div
+                  className="flex items-center gap-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 px-5 py-5"
+                  animate={{ borderColor: ['rgba(255,46,166,0.2)', 'rgba(255,46,166,0.5)', 'rgba(255,46,166,0.2)'] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <motion.div
+                    animate={{ rotate: [0, -15, 15, -10, 10, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2.5, ease: 'easeInOut' }}
+                  >
+                    <Smartphone size={28} className="flex-shrink-0 text-pink-400" />
+                  </motion.div>
+                  <div>
+                    <p className="font-semibold text-white">Sacuda o celular</p>
+                    <p className="mt-0.5 text-xs text-white/50 leading-relaxed">
+                      Balance o aparelho 3× seguidas e um título será sorteado na hora
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Simulate shake — debug button for mobile emulation on desktop */}
+                <motion.button
+                  onClick={() => runSpin(true)}
+                  disabled={phase !== 'idle'}
+                  className="w-full rounded-2xl border border-dashed border-pink-500/30 py-3.5 text-sm font-medium text-pink-400/70 transition active:scale-95 disabled:opacity-30"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Simular sacudida
+                </motion.button>
+
+                {/* iOS permission */}
+                {needsPermission && !permissionGranted && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 px-5 py-4"
+                  >
+                    <p className="text-xs text-yellow-400/80 mb-3">
+                      iOS precisa de permissão para detectar o movimento do aparelho.
+                    </p>
+                    <button
+                      onClick={requestMotionPermission}
+                      className="rounded-full bg-yellow-500 px-4 py-1.5 text-xs font-semibold text-black"
+                    >
+                      Permitir sensor de movimento
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            ) : (
+              // Desktop instruction + hold button
+              <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4 rounded-2xl border border-white/8 bg-white/4 px-5 py-4 w-full max-w-sm">
+                  <Mouse size={22} className="flex-shrink-0 text-pink-400" />
+                  <div>
+                    <p className="font-semibold text-white text-sm">Pressione e segure</p>
+                    <p className="mt-0.5 text-xs text-white/50">
+                      Mantenha o botão pressionado até o círculo completar
+                    </p>
+                  </div>
+                </div>
+
+                {/* Circular hold button */}
+                <div className="relative flex items-center justify-center">
+                  <svg width="140" height="140" className="absolute" style={{ transform: 'rotate(-90deg)' }}>
+                    {/* Track */}
+                    <circle cx="70" cy="70" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+                    {/* Progress */}
+                    <circle
+                      cx="70" cy="70" r={R}
+                      fill="none"
+                      stroke="#ff2ea6"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray={CIRC}
+                      strokeDashoffset={CIRC * (1 - holdFraction)}
+                      style={{ transition: holding ? 'none' : 'stroke-dashoffset 0.3s ease' }}
+                    />
+                  </svg>
+
+                  <button
+                    className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${
+                      holding
+                        ? 'bg-pink-500/20 text-pink-400'
+                        : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
+                    }`}
+                    onMouseDown={startHold}
+                    onMouseUp={holding ? finishHold : undefined}
+                    onMouseLeave={cancelHold}
+                    onTouchStart={startHold}
+                    onTouchEnd={holding ? finishHold : undefined}
+                  >
+                    <motion.div
+                      animate={holding ? { rotate: 360 } : { rotate: 0 }}
+                      transition={holding ? { duration: 1.4, ease: 'linear', repeat: Infinity } : {}}
+                    >
+                      <Shuffle size={24} />
+                    </motion.div>
+                    <span className="text-[10px] font-medium tracking-wide">
+                      {holding ? 'Sorteando' : 'Segurar'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Film list ── */}
+            <div className="mt-8">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+                Na fila de espera
+              </p>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {pool.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    className="flex-shrink-0 w-20"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 + i * 0.04, duration: 0.3 }}
+                  >
+                    <div className="aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-white/8">
+                      {item.posterUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.posterUrl} alt={item.titulo} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Film size={18} className="text-white/15" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-center text-[10px] leading-tight text-white/40">
+                      {item.titulo}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── SPINNING ────────────────────────────────────────────────────── */}
+        {phase === 'spinning' && (
+          <motion.div
+            key="spinning"
+            className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <motion.p
+              className="text-[10px] uppercase tracking-[0.3em] text-pink-500/70"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+            >
+              Sorteando...
+            </motion.p>
+
+            {/* Spinning ring around card */}
+            {!isMobile && (
+              <motion.div
+                className="absolute h-72 w-52 rounded-3xl border border-pink-500/20"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                style={{ borderStyle: 'dashed' }}
+              />
+            )}
+
+            <motion.div
+              animate={cardAnim}
+              className="w-44"
+              style={{ perspective: 800 }}
+            >
+              {displayedItem && <SpinCard key={flipKey} item={displayedItem} />}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ── RESULT ──────────────────────────────────────────────────────── */}
+        {phase === 'result' && chosen && (
+          <motion.div
+            key="result"
+            className="relative z-10 flex flex-1 flex-col items-center justify-center gap-8 px-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <motion.p
+              className="text-[10px] uppercase tracking-[0.3em] text-pink-500"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              É hoje!
+            </motion.p>
+
+            {/* Chosen card with glow */}
+            <motion.div
+              className="relative w-52"
+              initial={{ opacity: 0, scale: 0.6, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.12 }}
+            >
+              <div className="absolute inset-0 -z-10 scale-90 rounded-3xl bg-pink-500/30 blur-2xl" />
+              <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl bg-zinc-900 ring-2 ring-pink-500 shadow-2xl">
+                {chosen.posterUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={chosen.posterUrl} alt={chosen.titulo} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Film size={48} className="text-white/15" />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <p className="text-lg font-bold text-white leading-snug">{chosen.titulo}</p>
+              {chosen.anoLancamento && (
+                <p className="mt-0.5 text-sm text-white/40">{chosen.anoLancamento}</p>
+              )}
+            </motion.div>
+
+            <motion.div
+              className="w-full space-y-3"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <button
+                onClick={() => { setChosen(null); setDisplayedItem(null); setPhase('idle'); }}
+                className="w-full rounded-full bg-pink-500 py-3.5 text-sm font-semibold text-white active:scale-95 transition-transform"
+              >
+                Sortear novamente
+              </button>
+              <Link
+                href="/"
+                className="block w-full rounded-full border border-white/15 py-3.5 text-center text-sm font-semibold text-white/50"
+              >
+                Início
+              </Link>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ─── SpinCard — isolated so key reset triggers enter animation ────────────────
+
+function SpinCard({ item }: { item: WatchItem }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0.6 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.06 }}
+    >
+      <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl bg-zinc-900 ring-1 ring-white/10 shadow-xl">
+        {item.posterUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.posterUrl} alt={item.titulo} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-3">
+            <Film size={32} className="text-white/15" />
+            <p className="text-center text-xs font-medium leading-tight text-white/40 line-clamp-3">
+              {item.titulo}
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}

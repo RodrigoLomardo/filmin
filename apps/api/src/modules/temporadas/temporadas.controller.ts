@@ -30,7 +30,7 @@ export class TemporadasController {
     @Body() createTemporadaDto: CreateTemporadaDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.temporadasService.create(createTemporadaDto, groupId);
+    return this.temporadasService.create(createTemporadaDto, groupId, user.groupTipo);
   }
 
   @Get()
@@ -61,7 +61,7 @@ export class TemporadasController {
     @Body() updateTemporadaDto: UpdateTemporadaDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.temporadasService.update(id, updateTemporadaDto, groupId);
+    return this.temporadasService.update(id, updateTemporadaDto, groupId, user.groupTipo);
   }
 
   @Delete(':id')

@@ -37,7 +37,7 @@ export class WatchItemsController {
     @Body() createWatchItemDto: CreateWatchItemDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.watchItemsService.create(createWatchItemDto, groupId);
+    return this.watchItemsService.create(createWatchItemDto, groupId, user.groupTipo);
   }
 
   @Get()
@@ -86,7 +86,7 @@ export class WatchItemsController {
     @Body() updateWatchItemDto: UpdateWatchItemDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.watchItemsService.update(id, updateWatchItemDto, groupId);
+    return this.watchItemsService.update(id, updateWatchItemDto, groupId, user.groupTipo);
   }
 
   @Delete(':id')

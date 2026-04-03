@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from '../profiles/entities/profile.entity';
+import { Group } from '../groups/entities/group.entity';
 import { GroupMember } from '../groups/entities/group-member.entity';
 import { GeneroUsuario } from '../../common/enums/genero-usuario.enum';
+import type { GroupTipo } from '../../common/enums/group-tipo.enum';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,9 @@ export class AuthService {
 
     @InjectRepository(GroupMember)
     private readonly groupMembersRepo: Repository<GroupMember>,
+
+    @InjectRepository(Group)
+    private readonly groupsRepo: Repository<Group>,
   ) {}
 
   /**
@@ -24,7 +29,7 @@ export class AuthService {
     supabaseUserId: string,
     email: string,
     userMetadata?: { firstName?: string; lastName?: string; genero?: string },
-  ): Promise<{ profile: Profile; groupId: string | null }> {
+  ): Promise<{ profile: Profile; groupId: string | null; groupTipo: GroupTipo | null }> {
     let profile = await this.profilesRepo.findOne({
       where: { supabaseUserId },
     });
@@ -44,20 +49,28 @@ export class AuthService {
       await this.profilesRepo.save(profile);
     }
 
-    const groupId = await this.getProfileGroupId(profile.id);
+    const { groupId, groupTipo } = await this.getProfileGroup(profile.id);
 
-    return { profile, groupId };
+    return { profile, groupId, groupTipo };
   }
 
   /**
-   * Retorna o groupId do profile, ou null se ainda sem grupo.
+   * Retorna groupId e groupTipo do profile, ou nulls se ainda sem grupo.
    */
-  async getProfileGroupId(profileId: string): Promise<string | null> {
+  async getProfileGroup(profileId: string): Promise<{ groupId: string | null; groupTipo: GroupTipo | null }> {
     const member = await this.groupMembersRepo.findOne({
       where: { profileId },
       select: ['groupId'],
     });
-    return member?.groupId ?? null;
+
+    if (!member?.groupId) return { groupId: null, groupTipo: null };
+
+    const group = await this.groupsRepo.findOne({
+      where: { id: member.groupId },
+      select: ['id', 'tipo'],
+    });
+
+    return { groupId: member.groupId, groupTipo: group?.tipo ?? null };
   }
 
   /**
@@ -65,11 +78,11 @@ export class AuthService {
    */
   async getMe(
     profileId: string,
-  ): Promise<{ profile: Profile; groupId: string | null }> {
+  ): Promise<{ profile: Profile; groupId: string | null; groupTipo: GroupTipo | null }> {
     const profile = await this.profilesRepo.findOneOrFail({
       where: { id: profileId },
     });
-    const groupId = await this.getProfileGroupId(profileId);
-    return { profile, groupId };
+    const { groupId, groupTipo } = await this.getProfileGroup(profileId);
+    return { profile, groupId, groupTipo };
   }
 }

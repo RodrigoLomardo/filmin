@@ -47,7 +47,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token inválido ou expirado.');
     }
 
-    const { profile, groupId } =
+    const { profile, groupId, groupTipo } =
       await this.authService.findOrCreateProfile(supabaseUserId, email, userMetadata);
 
     request['user'] = {
@@ -55,6 +55,7 @@ export class JwtAuthGuard implements CanActivate {
       email,
       profileId: profile.id,
       groupId,
+      groupTipo,
     };
 
     return true;

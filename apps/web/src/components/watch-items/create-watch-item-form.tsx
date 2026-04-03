@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
+import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 
 const statusOptions: WatchItemStatus[] = [
   'quero_assistir',
@@ -29,6 +30,7 @@ const formFields = [
 export function CreateWatchItemForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const groupTipo = useGroupTipo();
 
   const [titulo, setTitulo] = useState('');
   const [tituloOriginal, setTituloOriginal] = useState('');
@@ -176,8 +178,10 @@ export function CreateWatchItemForm() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                   >
-                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dele" value={notaDele} onChange={(e) => setNotaDele(e.target.value)} />
-                    <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} />
+                    <Input type="number" step="0.1" min="0" max="10" placeholder={groupTipo === 'duo' ? 'Nota dele' : 'Minha nota'} value={notaDele} onChange={(e) => setNotaDele(e.target.value)} />
+                    {groupTipo === 'duo' && (
+                      <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} />
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

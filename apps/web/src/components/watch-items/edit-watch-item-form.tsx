@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getGeneros } from '@/lib/api/generos';
 import { updateWatchItem } from '@/lib/api/watch-items';
+import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { createTemporada, updateTemporada } from '@/lib/api/temporadas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ type EditWatchItemFormProps = {
 
 export function EditWatchItemForm({ item, onSuccess }: EditWatchItemFormProps) {
   const queryClient = useQueryClient();
+  const groupTipo = useGroupTipo();
 
   const [titulo, setTitulo] = useState(item.titulo);
   const [tituloOriginal, setTituloOriginal] = useState(item.tituloOriginal ?? '');
@@ -168,8 +170,10 @@ export function EditWatchItemForm({ item, onSuccess }: EditWatchItemFormProps) {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dele" value={notaDele} onChange={(e) => setNotaDele(e.target.value)} />
-            <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} />
+            <Input type="number" step="0.1" min="0" max="10" placeholder={groupTipo === 'duo' ? 'Nota dele' : 'Minha nota'} value={notaDele} onChange={(e) => setNotaDele(e.target.value)} />
+            {groupTipo === 'duo' && (
+              <Input type="number" step="0.1" min="0" max="10" placeholder="Nota dela" value={notaDela} onChange={(e) => setNotaDela(e.target.value)} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -190,7 +194,7 @@ export function EditWatchItemForm({ item, onSuccess }: EditWatchItemFormProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.04 }}
-                className="relative grid grid-cols-[auto_1fr_1fr] gap-2 rounded-2xl border border-zinc-800 p-3"
+                className={`relative grid gap-2 rounded-2xl border border-zinc-800 p-3 ${groupTipo === 'duo' ? 'grid-cols-[auto_1fr_1fr]' : 'grid-cols-[auto_1fr]'}`}
               >
                 {t.isNew && (
                   <button
@@ -209,19 +213,21 @@ export function EditWatchItemForm({ item, onSuccess }: EditWatchItemFormProps) {
                   step="0.1"
                   min="0"
                   max="10"
-                  placeholder="Nota dele"
+                  placeholder={groupTipo === 'duo' ? 'Nota dele' : 'Minha nota'}
                   value={t.notaDele}
                   onChange={(e) => updateTemporadaField(index, 'notaDele', e.target.value)}
                 />
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="10"
-                  placeholder="Nota dela"
-                  value={t.notaDela}
-                  onChange={(e) => updateTemporadaField(index, 'notaDela', e.target.value)}
-                />
+                {groupTipo === 'duo' && (
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    placeholder="Nota dela"
+                    value={t.notaDela}
+                    onChange={(e) => updateTemporadaField(index, 'notaDela', e.target.value)}
+                  />
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
