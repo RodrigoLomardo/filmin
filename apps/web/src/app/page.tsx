@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
+import { AvatarButton, ProfileModal } from '@/components/profile-modal';
 
 
 
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [showSplash, setShowSplash] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const shown = sessionStorage.getItem('splash_shown');
@@ -38,6 +40,8 @@ export default function HomePage() {
 
   return (
     <>
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+
       <AnimatePresence>
         {showSplash && (
 
@@ -60,12 +64,16 @@ export default function HomePage() {
             transition={{ duration: 0.4, ease: 'easeOut' }}
           >
             <MotionDiv
+              className="flex items-start justify-between"
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <p className="text-sm uppercase tracking-[0.2em] text-pink-500">Filmin</p>
-              <h1 className="text-3xl font-bold">Seus filmes, séries e livros</h1>
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-pink-500">Filmin</p>
+                <h1 className="text-3xl font-bold">Seus filmes, séries e livros</h1>
+              </div>
+              <AvatarButton onClick={() => setProfileOpen(true)} />
             </MotionDiv>
 
             <WatchItemsDashboard />

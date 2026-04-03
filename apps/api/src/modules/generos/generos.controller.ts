@@ -1,9 +1,11 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
 import { GenerosService } from './generos.service';
 
 @ApiTags('generos')
 @Controller('generos')
+@Public()
 export class GenerosController {
   constructor(private readonly generosService: GenerosService) { }
 

@@ -21,9 +21,9 @@ export class TemporadasService {
     private readonly watchItemRepository: Repository<WatchItem>,
   ) { }
 
-  async create(createTemporadaDto: CreateTemporadaDto) {
+  async create(createTemporadaDto: CreateTemporadaDto, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id: createTemporadaDto.watchItemId },
+      where: { id: createTemporadaDto.watchItemId, groupId },
       relations: { temporadas: true },
     });
 
@@ -75,33 +75,35 @@ export class TemporadasService {
     });
   }
 
-  async findAll() {
-    return await this.temporadaRepository.find({
-      relations: { watchItem: true },
-      order: { numero: 'ASC' },
-    });
+  async findAll(groupId: string) {
+    return this.temporadaRepository
+      .createQueryBuilder('temporada')
+      .innerJoinAndSelect('temporada.watchItem', 'watchItem')
+      .where('watchItem.groupId = :groupId', { groupId })
+      .orderBy('temporada.numero', 'ASC')
+      .getMany();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, groupId: string) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
       relations: { watchItem: true },
     });
 
-    if (!temporada) {
+    if (!temporada || temporada.watchItem.groupId !== groupId) {
       throw new NotFoundException(`Temporada com id "${id}" não encontrada.`);
     }
 
     return temporada;
   }
 
-  async update(id: string, updateTemporadaDto: UpdateTemporadaDto) {
+  async update(id: string, updateTemporadaDto: UpdateTemporadaDto, groupId: string) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
       relations: { watchItem: true },
     });
 
-    if (!temporada) {
+    if (!temporada || temporada.watchItem.groupId !== groupId) {
       throw new NotFoundException(`Temporada com id "${id}" não encontrada.`);
     }
 
@@ -125,7 +127,6 @@ export class TemporadasService {
     const notaDele = updateTemporadaDto.notaDele ?? temporada.notaDele;
     const notaDela = updateTemporadaDto.notaDela ?? temporada.notaDela;
 
-    // Se vier uma nota parcial no update, exige que a outra já exista
     const tentandoAtualizarNota = updateTemporadaDto.notaDele !== undefined || updateTemporadaDto.notaDela !== undefined;
     if (tentandoAtualizarNota && (notaDele == null || notaDela == null)) {
       throw new BadRequestException(
@@ -150,12 +151,13 @@ export class TemporadasService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, groupId: string) {
     const temporada = await this.temporadaRepository.findOne({
       where: { id },
+      relations: { watchItem: true },
     });
 
-    if (!temporada) {
+    if (!temporada || temporada.watchItem.groupId !== groupId) {
       throw new NotFoundException(`Temporada com id "${id}" não encontrada.`);
     }
 
@@ -187,7 +189,6 @@ export class TemporadasService {
 
     const temporadas = watchItem.temporadas ?? [];
 
-    // Considera apenas temporadas que já têm nota geral calculada
     const temporadasComNota = temporadas.filter(t => t.notaGeral != null);
 
     if (temporadasComNota.length === 0) {

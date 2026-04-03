@@ -18,8 +18,11 @@
     "concurrently": "^9.2.1",
     "prettier": "^3.8.1"
   },
-   "workspaces": [
+  "workspaces": [
     "apps/api",
     "apps/web"
-  ]
+  ],
+  "dependencies": {
+    "jose": "^6.2.2"
+  }
 }

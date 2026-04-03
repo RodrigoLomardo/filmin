@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { GroupGuard } from '../lib/auth/group-guard';
 
 export const metadata: Metadata = {
   title: 'Filmin',
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="pt-BR">
       <link rel="apple-touch-icon" href="/assets/logo-filmin.png" />
       <body className="min-h-screen bg-black text-white antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <GroupGuard>{children}</GroupGuard>
+        </Providers>
       </body>
     </html>
   );

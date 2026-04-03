@@ -23,7 +23,7 @@ export class WatchItemsService {
     private readonly generoRepository: Repository<Genero>,
   ) { }
 
-  async create(createWatchItemDto: CreateWatchItemDto) {
+  async create(createWatchItemDto: CreateWatchItemDto, groupId: string) {
     const generos = await this.validateAndGetGeneros(createWatchItemDto.generosIds);
 
     this.validateCreateRules(createWatchItemDto);
@@ -52,13 +52,14 @@ export class WatchItemsService {
       rewatchCount: createWatchItemDto.rewatchCount ?? 0,
       observacoes: createWatchItemDto.observacoes ?? null,
       posterUrl: createWatchItemDto.posterUrl ?? null,
+      groupId,
       generos,
     });
 
     return await this.watchItemRepository.save(watchItem);
   }
 
-  async findAll(query: FindAllWatchItemsQueryDto) {
+  async findAll(query: FindAllWatchItemsQueryDto, groupId: string) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -66,7 +67,8 @@ export class WatchItemsService {
     const qb = this.watchItemRepository
       .createQueryBuilder('watchItem')
       .leftJoinAndSelect('watchItem.generos', 'genero')
-      .leftJoinAndSelect('watchItem.temporadas', 'temporada');
+      .leftJoinAndSelect('watchItem.temporadas', 'temporada')
+      .where('watchItem.groupId = :groupId', { groupId });
 
     if (query.tipo) {
       qb.andWhere('watchItem.tipo = :tipo', { tipo: query.tipo });
@@ -83,7 +85,7 @@ export class WatchItemsService {
       );
     }
 
-    const sortByMap = {
+    const sortByMap: Record<string, string> = {
       titulo: 'watchItem.titulo',
       notaDele: 'watchItem.notaDele',
       notaDela: 'watchItem.notaDela',
@@ -106,17 +108,17 @@ export class WatchItemsService {
     };
   }
 
-  async getMatchPool() {
+  async getMatchPool(groupId: string) {
     return this.watchItemRepository.find({
-      where: { status: WatchItemStatus.QUERO_ASSISTIR },
+      where: { status: WatchItemStatus.QUERO_ASSISTIR, groupId },
       relations: { generos: true },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
       relations: { generos: true, temporadas: true },
     });
 
@@ -127,9 +129,9 @@ export class WatchItemsService {
     return watchItem;
   }
 
-  async update(id: string, updateWatchItemDto: UpdateWatchItemDto) {
+  async update(id: string, updateWatchItemDto: UpdateWatchItemDto, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
       relations: { generos: true, temporadas: true },
     });
 
@@ -178,9 +180,9 @@ export class WatchItemsService {
     return await this.watchItemRepository.save(watchItem);
   }
 
-  async remove(id: string) {
+  async remove(id: string, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
     });
 
     if (!watchItem) {

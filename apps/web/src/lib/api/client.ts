@@ -1,7 +1,19 @@
+import { createClient } from '../supabase/client';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL não foi definida.');
+}
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
 }
 
 type RequestOptions = RequestInit & {
@@ -22,13 +34,30 @@ function buildUrl(path: string, params?: Record<string, string | number | undefi
   return url.toString();
 }
 
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { params, headers, ...rest } = options;
+
+  const token = await getAccessToken();
+
+  const authHeaders: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
 
   const response = await fetch(buildUrl(path, params), {
     ...rest,
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders,
       ...headers,
     },
     cache: 'no-store',
@@ -42,7 +71,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       message = errorBody.message || message;
     } catch { }
 
-    throw new Error(Array.isArray(message) ? message.join(', ') : message);
+    throw new ApiError(response.status, Array.isArray(message) ? message.join(', ') : message);
   }
 
   if (response.status === 204) {
