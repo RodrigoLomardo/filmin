@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { WatchItem } from '@/types/watch-item';
 import { EditWatchItemModal } from './edit-watch-item-modal';
+import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 
 type WatchItemCardProps = {
   item: WatchItem;
@@ -13,6 +14,7 @@ type WatchItemCardProps = {
 
 export function WatchItemCard({ item, index }: WatchItemCardProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const groupTipo = useGroupTipo();
   const isFilmeOuLivro = item.tipo === 'filme' || item.tipo === 'livro';
 
   return (
@@ -51,11 +53,15 @@ export function WatchItemCard({ item, index }: WatchItemCardProps) {
           <div className="flex items-center justify-between text-sm text-zinc-300">
             <div className="flex gap-4">
               {isFilmeOuLivro ? (
-                <>
-                  <span>Ele: {item.notaDele ?? '-'}</span>
-                  <span>Ela: {item.notaDela ?? '-'}</span>
-                  <span className="text-pink-400">Geral: {item.notaGeral ?? '-'}</span>
-                </>
+                groupTipo === 'duo' ? (
+                  <>
+                    <span>Ele: {item.notaDele ?? '-'}</span>
+                    <span>Ela: {item.notaDela ?? '-'}</span>
+                    <span className="text-pink-400">Geral: {item.notaGeral ?? '-'}</span>
+                  </>
+                ) : (
+                  <span className="text-pink-400">Nota: {item.notaDele ?? '-'}</span>
+                )
               ) : (
                 <span className="text-pink-400">Geral: {item.notaGeral ?? '-'}</span>
               )}

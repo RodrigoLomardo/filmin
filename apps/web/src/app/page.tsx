@@ -1,50 +1,49 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Heart } from 'lucide-react';
+import { Plus, Heart, Shuffle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
-
-
-
-
-const menuItems = [
-  { label: 'Modo Match', href: '/match', icon: Heart },
-  { label: 'Novo item', href: '/cadastro', icon: Plus },
-];
+import { AvatarButton, ProfileModal } from '@/components/profile-modal';
+import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 
 
 export default function HomePage() {
+  const groupTipo = useGroupTipo();
   const [showSplash, setShowSplash] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const menuItems = [
+    groupTipo === 'duo'
+      ? { label: 'Modo Match', href: '/match', icon: Heart }
+      : { label: 'Escolha Rápida', href: '/escolha-rapida', icon: Shuffle },
+    { label: 'Novo item', href: '/cadastro', icon: Plus },
+  ];
 
   useEffect(() => {
     const shown = sessionStorage.getItem('splash_shown');
-    setShowSplash(!shown);
-    setMounted(true);
-
-    if (!sessionStorage.getItem('splashShown')) {
+    if (!shown) {
+      sessionStorage.setItem('splash_shown', '1');
       setShowSplash(true);
-      sessionStorage.setItem('splashShown', 'true');
     }
-
+    setMounted(true);
   }, []);
 
   if (!mounted) return null;
 
   return (
     <>
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+
       <AnimatePresence>
         {showSplash && (
 
-          <SplashScreen onFinish={() => {
-            sessionStorage.setItem('splash_shown', '1');
-            setShowSplash(false);
-          }} />
+          <SplashScreen onFinish={() => setShowSplash(false)} />
 
 
 
@@ -60,12 +59,16 @@ export default function HomePage() {
             transition={{ duration: 0.4, ease: 'easeOut' }}
           >
             <MotionDiv
+              className="flex items-start justify-between"
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <p className="text-sm uppercase tracking-[0.2em] text-pink-500">Filmin</p>
-              <h1 className="text-3xl font-bold">Seus filmes, séries e livros</h1>
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-pink-500">Filmin</p>
+                <h1 className="text-3xl font-bold">Seus filmes, séries e livros</h1>
+              </div>
+              <AvatarButton onClick={() => setProfileOpen(true)} />
             </MotionDiv>
 
             <WatchItemsDashboard />

@@ -4,8 +4,10 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -14,6 +16,7 @@ import { WatchItemStatus } from '../../../common/enums/watch-item-status.enum';
 import { WatchItemTipo } from '../../../common/enums/watch-item-tipo.enum';
 import { Genero } from '../../generos/entities/genero.entity';
 import { Temporada } from '../../temporadas/entities/temporada.entity';
+import { Group } from '../../groups/entities/group.entity';
 
 @Entity('watch_items')
 
@@ -98,6 +101,14 @@ export class WatchItem {
 
   @Column({ name: 'poster_url', type: 'text', nullable: true })
   posterUrl?: string | null;
+
+  @Index()
+  @Column({ name: 'group_id', type: 'uuid' })
+  groupId: string;
+
+  @ManyToOne(() => Group, (g) => g.watchItems, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'group_id' })
+  group: Group;
 
   @OneToMany(() => Temporada, (temporada) => temporada.watchItem)
   temporadas: Temporada[];

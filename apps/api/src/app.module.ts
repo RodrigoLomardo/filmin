@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthModule } from './modules/auth/auth.module';
 import { GenerosModule } from './modules/generos/generos.module';
+import { GroupsModule } from './modules/groups/groups.module';
+import { ProfilesModule } from './modules/profiles/profiles.module';
 import { TemporadasModule } from './modules/temporadas/temporadas.module';
 import { WatchItemsModule } from './modules/watch-items/watch-items.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -24,6 +29,15 @@ import { WatchItemsModule } from './modules/watch-items/watch-items.module';
     WatchItemsModule,
     TemporadasModule,
     GenerosModule,
+    ProfilesModule,
+    GroupsModule,
+    AuthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule { }

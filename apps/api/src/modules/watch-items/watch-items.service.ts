@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Genero } from '../generos/entities/genero.entity';
 import { WatchItemStatus } from '../../common/enums/watch-item-status.enum';
 import { WatchItemTipo } from '../../common/enums/watch-item-tipo.enum';
+import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import { WatchItem } from './entities/watch-item.entity';
 import { CreateWatchItemDto } from './dto/create-watch-item.dto';
 import { UpdateWatchItemDto } from './dto/update-watch-item.dto';
@@ -23,19 +24,27 @@ export class WatchItemsService {
     private readonly generoRepository: Repository<Genero>,
   ) { }
 
-  async create(createWatchItemDto: CreateWatchItemDto) {
+  async create(createWatchItemDto: CreateWatchItemDto, groupId: string, groupTipo: GroupTipo | null) {
     const generos = await this.validateAndGetGeneros(createWatchItemDto.generosIds);
 
-    this.validateCreateRules(createWatchItemDto);
+    this.validateNotasRules({
+      tipo: createWatchItemDto.tipo,
+      status: createWatchItemDto.status,
+      notaDele: createWatchItemDto.notaDele,
+      notaDela: createWatchItemDto.notaDela,
+      groupTipo,
+    });
 
-    const isFilme = createWatchItemDto.tipo === WatchItemTipo.FILME;
+    const isMidiaNota = createWatchItemDto.tipo === WatchItemTipo.FILME || createWatchItemDto.tipo === WatchItemTipo.LIVRO;
+    const isSolo = groupTipo === GroupTipo.SOLO;
 
-    const notaGeral =
-      isFilme &&
-      createWatchItemDto.notaDele != null &&
-      createWatchItemDto.notaDela != null
-        ? this.calcularNotaGeralFilme(createWatchItemDto.notaDele, createWatchItemDto.notaDela)
-        : null;
+    const notaGeral = isMidiaNota && createWatchItemDto.notaDele != null
+      ? isSolo
+        ? createWatchItemDto.notaDele
+        : createWatchItemDto.notaDela != null
+          ? this.calcularNotaGeralDuo(createWatchItemDto.notaDele, createWatchItemDto.notaDela)
+          : null
+      : null;
 
     const watchItem = this.watchItemRepository.create({
       titulo: createWatchItemDto.titulo,
@@ -43,8 +52,8 @@ export class WatchItemsService {
       anoLancamento: createWatchItemDto.anoLancamento,
       tipo: createWatchItemDto.tipo,
       status: createWatchItemDto.status,
-      notaDele: isFilme ? createWatchItemDto.notaDele ?? null : null,
-      notaDela: isFilme ? createWatchItemDto.notaDela ?? null : null,
+      notaDele: isMidiaNota ? createWatchItemDto.notaDele ?? null : null,
+      notaDela: isMidiaNota && !isSolo ? createWatchItemDto.notaDela ?? null : null,
       notaGeral,
       dataAssistida: createWatchItemDto.dataAssistida
         ? new Date(createWatchItemDto.dataAssistida)
@@ -52,13 +61,14 @@ export class WatchItemsService {
       rewatchCount: createWatchItemDto.rewatchCount ?? 0,
       observacoes: createWatchItemDto.observacoes ?? null,
       posterUrl: createWatchItemDto.posterUrl ?? null,
+      groupId,
       generos,
     });
 
     return await this.watchItemRepository.save(watchItem);
   }
 
-  async findAll(query: FindAllWatchItemsQueryDto) {
+  async findAll(query: FindAllWatchItemsQueryDto, groupId: string) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -66,7 +76,8 @@ export class WatchItemsService {
     const qb = this.watchItemRepository
       .createQueryBuilder('watchItem')
       .leftJoinAndSelect('watchItem.generos', 'genero')
-      .leftJoinAndSelect('watchItem.temporadas', 'temporada');
+      .leftJoinAndSelect('watchItem.temporadas', 'temporada')
+      .where('watchItem.groupId = :groupId', { groupId });
 
     if (query.tipo) {
       qb.andWhere('watchItem.tipo = :tipo', { tipo: query.tipo });
@@ -83,7 +94,7 @@ export class WatchItemsService {
       );
     }
 
-    const sortByMap = {
+    const sortByMap: Record<string, string> = {
       titulo: 'watchItem.titulo',
       notaDele: 'watchItem.notaDele',
       notaDela: 'watchItem.notaDela',
@@ -106,17 +117,17 @@ export class WatchItemsService {
     };
   }
 
-  async getMatchPool() {
+  async getMatchPool(groupId: string) {
     return this.watchItemRepository.find({
-      where: { status: WatchItemStatus.QUERO_ASSISTIR },
+      where: { status: WatchItemStatus.QUERO_ASSISTIR, groupId },
       relations: { generos: true },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
       relations: { generos: true, temporadas: true },
     });
 
@@ -127,9 +138,9 @@ export class WatchItemsService {
     return watchItem;
   }
 
-  async update(id: string, updateWatchItemDto: UpdateWatchItemDto) {
+  async update(id: string, updateWatchItemDto: UpdateWatchItemDto, groupId: string, groupTipo: GroupTipo | null) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
       relations: { generos: true, temporadas: true },
     });
 
@@ -142,7 +153,7 @@ export class WatchItemsService {
     const newNotaDele = updateWatchItemDto.notaDele !== undefined ? updateWatchItemDto.notaDele : watchItem.notaDele;
     const newNotaDela = updateWatchItemDto.notaDela !== undefined ? updateWatchItemDto.notaDela : watchItem.notaDela;
 
-    this.validateUpdateRules({ tipo: newTipo, status: newStatus, notaDele: newNotaDele, notaDela: newNotaDela });
+    this.validateNotasRules({ tipo: newTipo, status: newStatus, notaDele: newNotaDele, notaDela: newNotaDela, groupTipo });
 
     if (updateWatchItemDto.generosIds) {
       const generos = await this.validateAndGetGeneros(updateWatchItemDto.generosIds);
@@ -161,16 +172,20 @@ export class WatchItemsService {
     watchItem.observacoes = updateWatchItemDto.observacoes !== undefined ? updateWatchItemDto.observacoes : watchItem.observacoes;
     watchItem.posterUrl = updateWatchItemDto.posterUrl !== undefined ? updateWatchItemDto.posterUrl : watchItem.posterUrl;
 
-    if (newTipo === WatchItemTipo.FILME || newTipo === WatchItemTipo.LIVRO) {
+    const isMidiaNota = newTipo === WatchItemTipo.FILME || newTipo === WatchItemTipo.LIVRO;
+    const isSolo = groupTipo === GroupTipo.SOLO;
+
+    if (isMidiaNota) {
       watchItem.notaDele = newNotaDele ?? null;
-      watchItem.notaDela = newNotaDela ?? null;
-      watchItem.notaGeral = newNotaDele != null && newNotaDela != null
-        ? this.calcularNotaGeralFilme(newNotaDele, newNotaDela)
+      watchItem.notaDela = isSolo ? null : (newNotaDela ?? null);
+      watchItem.notaGeral = newNotaDele != null
+        ? isSolo
+          ? newNotaDele
+          : newNotaDela != null ? this.calcularNotaGeralDuo(newNotaDele, newNotaDela) : null
         : null;
     }
 
     if (newTipo === WatchItemTipo.SERIE) {
-      // Notas de série são calculadas pelo TemporadasService — não altera aqui
       watchItem.notaDele = null;
       watchItem.notaDela = null;
     }
@@ -178,9 +193,9 @@ export class WatchItemsService {
     return await this.watchItemRepository.save(watchItem);
   }
 
-  async remove(id: string) {
+  async remove(id: string, groupId: string) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id },
+      where: { id, groupId },
     });
 
     if (!watchItem) {
@@ -192,7 +207,7 @@ export class WatchItemsService {
     return { message: `Watch item com id "${id}" removido com sucesso.` };
   }
 
-  private calcularNotaGeralFilme(notaDele: number, notaDela: number): number {
+  private calcularNotaGeralDuo(notaDele: number, notaDela: number): number {
     return Number(((notaDele + notaDela) / 2).toFixed(1));
   }
 
@@ -210,40 +225,25 @@ export class WatchItemsService {
     return generos;
   }
 
-  private validateCreateRules(createWatchItemDto: CreateWatchItemDto) {
-    if (
-      (createWatchItemDto.tipo === WatchItemTipo.FILME || createWatchItemDto.tipo === WatchItemTipo.LIVRO) &&
-      createWatchItemDto.status === WatchItemStatus.ASSISTIDO
-    ) {
-      if (createWatchItemDto.notaDele === undefined || createWatchItemDto.notaDela === undefined) {
-        throw new BadRequestException(
-          'Filmes e livros com status "assistido" devem ter notaDele e notaDela informadas.',
-        );
-      }
-    }
-
-    if (createWatchItemDto.tipo === WatchItemTipo.FILME && createWatchItemDto.status === WatchItemStatus.ASSISTIDO) {
-      if (createWatchItemDto.notaDele === undefined || createWatchItemDto.notaDela === undefined) {
-        throw new BadRequestException(
-          'Filmes com status "assistido" devem ter notaDele e notaDela informadas.',
-        );
-      }
-    }
-  }
-
-  private validateUpdateRules(payload: {
+  private validateNotasRules(payload: {
     tipo: WatchItemTipo;
     status: WatchItemStatus;
     notaDele?: number | null;
     notaDela?: number | null;
+    groupTipo: GroupTipo | null;
   }) {
-    if (
-      (payload.tipo === WatchItemTipo.FILME || payload.tipo === WatchItemTipo.LIVRO) &&
-      payload.status === WatchItemStatus.ASSISTIDO &&
-      (payload.notaDele == null || payload.notaDela == null)
-    ) {
+    const isMidiaNota = payload.tipo === WatchItemTipo.FILME || payload.tipo === WatchItemTipo.LIVRO;
+    if (!isMidiaNota || payload.status !== WatchItemStatus.ASSISTIDO) return;
+
+    if (payload.notaDele == null) {
       throw new BadRequestException(
-        'Filmes e livros com status "assistido" devem ter notaDele e notaDela informadas.',
+        'Filmes e livros com status "assistido" precisam de pelo menos uma nota.',
+      );
+    }
+
+    if (payload.groupTipo === GroupTipo.DUO && payload.notaDela == null) {
+      throw new BadRequestException(
+        'Em grupos duo, filmes e livros com status "assistido" precisam da nota de ambos.',
       );
     }
   }
