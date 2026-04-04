@@ -32,28 +32,28 @@ const TIPO_CONFIG: {
   activeClass: string;
   ringClass: string;
 }[] = [
-  {
-    value: 'filme',
-    label: 'Filme',
-    Icon: Film,
-    activeClass: 'bg-gradient-to-br from-pink-500/25 to-rose-700/15 text-pink-400',
-    ringClass: 'ring-pink-500/60',
-  },
-  {
-    value: 'serie',
-    label: 'Série',
-    Icon: Tv,
-    activeClass: 'bg-gradient-to-br from-violet-500/25 to-indigo-700/15 text-violet-400',
-    ringClass: 'ring-violet-500/60',
-  },
-  {
-    value: 'livro',
-    label: 'Livro',
-    Icon: BookOpen,
-    activeClass: 'bg-gradient-to-br from-amber-500/25 to-orange-700/15 text-amber-400',
-    ringClass: 'ring-amber-500/60',
-  },
-];
+    {
+      value: 'filme',
+      label: 'Filme',
+      Icon: Film,
+      activeClass: 'bg-gradient-to-br from-pink-500/25 to-rose-700/15 text-pink-400',
+      ringClass: 'ring-pink-500/60',
+    },
+    {
+      value: 'serie',
+      label: 'Série',
+      Icon: Tv,
+      activeClass: 'bg-gradient-to-br from-violet-500/25 to-indigo-700/15 text-violet-400',
+      ringClass: 'ring-violet-500/60',
+    },
+    {
+      value: 'livro',
+      label: 'Livro',
+      Icon: BookOpen,
+      activeClass: 'bg-gradient-to-br from-amber-500/25 to-orange-700/15 text-amber-400',
+      ringClass: 'ring-amber-500/60',
+    },
+  ];
 
 const STATUS_CONFIG: { value: WatchItemStatus; label: string; emoji: string }[] = [
   { value: 'quero_assistir', label: 'Quero', emoji: '🎯' },
@@ -107,7 +107,8 @@ function FloatInput({
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>['inputMode'];
 }) {
   const [focused, setFocused] = useState(false);
-  const floated = focused || value !== '';
+
+  const floated = type === 'date' || focused || value !== '';
 
   return (
     <div className="relative">
@@ -133,9 +134,8 @@ function FloatInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         required={required}
-        className={`w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none transition-all duration-200 ${
-          focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
-        }`}
+        className={`w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none transition-all duration-200 ${focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
+          }`}
       />
     </div>
   );
@@ -173,9 +173,8 @@ function FloatTextarea({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         rows={3}
-        className={`w-full resize-none rounded-2xl bg-zinc-900 px-4 pb-4 pt-9 text-sm text-white outline-none transition-all duration-200 ${
-          focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
-        }`}
+        className={`w-full resize-none rounded-2xl bg-zinc-900 px-4 pb-4 pt-9 text-sm text-white outline-none transition-all duration-200 ${focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
+          }`}
       />
     </div>
   );
@@ -222,9 +221,8 @@ function NoteCounter({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.14, ease: 'easeOut' }}
-              className={`absolute text-5xl font-bold tabular-nums leading-none ${
-                num != null ? 'text-white' : 'text-zinc-700'
-              }`}
+              className={`absolute text-5xl font-bold tabular-nums leading-none ${num != null ? 'text-white' : 'text-zinc-700'
+                }`}
             >
               {num != null
                 ? Number.isInteger(num)
@@ -266,6 +264,7 @@ function PosterInput({
 }) {
   const [focused, setFocused] = useState(false);
   const [imgError, setImgError] = useState(false);
+
   const floated = focused || value !== '';
   const hasPreview = value !== '' && !imgError;
 
@@ -331,9 +330,8 @@ function PosterInput({
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className={`w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none transition-all duration-200 ${
-            focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
-          }`}
+          className={`w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none transition-all duration-200 ${focused ? 'ring-2 ring-pink-500' : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
+            }`}
         />
       </div>
     </div>
@@ -509,11 +507,10 @@ export function CreateWatchItemForm() {
                     opacity: active ? 1 : 0.5,
                   }}
                   transition={{ duration: 0.15 }}
-                  className={`flex flex-col items-center gap-2.5 rounded-2xl py-5 ring-1 transition-all duration-200 ${
-                    active
-                      ? `${activeClass} ${ringClass} opacity-100`
-                      : 'bg-zinc-950 ring-zinc-800/60 text-zinc-600'
-                  }`}
+                  className={`flex flex-col items-center gap-2.5 rounded-2xl py-5 ring-1 transition-all duration-200 ${active
+                    ? `${activeClass} ${ringClass} opacity-100`
+                    : 'bg-zinc-950 ring-zinc-800/60 text-zinc-600'
+                    }`}
                 >
                   <Icon size={22} />
                   <span className="text-xs font-semibold">{label}</span>
@@ -602,7 +599,7 @@ export function CreateWatchItemForm() {
                 Temporadas
               </SectionLabel>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <AnimatePresence>
                   {temporadas.map((t, index) => (
                     <motion.div
@@ -613,8 +610,8 @@ export function CreateWatchItemForm() {
                       transition={{ duration: 0.22, ease: 'easeOut' }}
                       className="relative rounded-2xl bg-zinc-950 p-4 ring-1 ring-violet-500/20"
                     >
-                      {/* Numero badge + remove */}
-                      <div className="mb-3 flex items-center justify-between">
+                      {/* Header */}
+                      <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500/20 text-[10px] font-bold text-violet-400">
                             {t.numero}
@@ -623,29 +620,44 @@ export function CreateWatchItemForm() {
                             Temporada {t.numero}
                           </span>
                         </div>
+
                         <motion.button
                           type="button"
                           onClick={() => removeTemporada(index)}
                           whileTap={{ scale: 0.85 }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-500 transition-colors hover:bg-red-500/20 hover:text-red-400"
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-500 transition-colors hover:bg-red-500/20 hover:text-red-400"
                         >
                           <X size={13} />
                         </motion.button>
                       </div>
 
                       {/* Note inputs */}
-                      <div className={`grid gap-3 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                        <NoteCounter
-                          label={groupTipo === 'duo' ? 'Dele' : 'Nota'}
-                          value={t.notaDele}
-                          onChange={(v) => updateTemporadaField(index, 'notaDele', v)}
-                        />
-                        {groupTipo === 'duo' && (
+                      <div
+                        className={`grid gap-4 ${groupTipo === 'duo'
+                          ? 'grid-cols-1 sm:grid-cols-2'
+                          : 'grid-cols-1'
+                          }`}
+                      >
+                        <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                           <NoteCounter
-                            label="Dela"
-                            value={t.notaDela}
-                            onChange={(v) => updateTemporadaField(index, 'notaDela', v)}
+                            label={groupTipo === 'duo' ? 'Dele' : 'Nota'}
+                            value={t.notaDele}
+                            onChange={(v) =>
+                              updateTemporadaField(index, 'notaDele', v)
+                            }
                           />
+                        </div>
+
+                        {groupTipo === 'duo' && (
+                          <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
+                            <NoteCounter
+                              label="Dela"
+                              value={t.notaDela}
+                              onChange={(v) =>
+                                updateTemporadaField(index, 'notaDela', v)
+                              }
+                            />
+                          </div>
                         )}
                       </div>
                     </motion.div>
@@ -656,7 +668,7 @@ export function CreateWatchItemForm() {
                   type="button"
                   onClick={addTemporada}
                   whileTap={{ scale: 0.97 }}
-                  className="w-full rounded-2xl border border-dashed border-zinc-800 py-3.5 text-sm font-medium text-zinc-500 transition-colors hover:border-violet-500/40 hover:text-violet-400"
+                  className="w-full rounded-2xl border border-dashed border-zinc-800 py-4 text-sm font-medium text-zinc-500 transition-colors hover:border-violet-500/40 hover:text-violet-400"
                 >
                   + Adicionar temporada
                 </motion.button>
@@ -680,18 +692,27 @@ export function CreateWatchItemForm() {
                 <Star size={10} className="mr-1 inline -mt-0.5" />
                 Notas
               </SectionLabel>
-              <div className={`grid gap-3 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                <NoteCounter
-                  label={groupTipo === 'duo' ? 'Dele' : 'Minha nota'}
-                  value={notaDele}
-                  onChange={setNotaDele}
-                />
-                {groupTipo === 'duo' && (
+
+              <div
+                className={`grid gap-4 ${groupTipo === 'duo' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+                  }`}
+              >
+                <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                   <NoteCounter
-                    label="Dela"
-                    value={notaDela}
-                    onChange={setNotaDela}
+                    label={groupTipo === 'duo' ? 'Dele' : 'Minha nota'}
+                    value={notaDele}
+                    onChange={setNotaDele}
                   />
+                </div>
+
+                {groupTipo === 'duo' && (
+                  <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
+                    <NoteCounter
+                      label="Dela"
+                      value={notaDela}
+                      onChange={setNotaDela}
+                    />
+                  </div>
                 )}
               </div>
             </motion.section>
@@ -699,8 +720,14 @@ export function CreateWatchItemForm() {
         </AnimatePresence>
 
         {/* Section 5 — Detalhes */}
-        <motion.section custom={3} initial="hidden" animate="visible" variants={sectionVariants}>
+        <motion.section
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={sectionVariants}
+        >
           <SectionLabel>Detalhes</SectionLabel>
+
           <div className="space-y-3">
             <FloatInput
               label="Data assistida"
@@ -708,7 +735,12 @@ export function CreateWatchItemForm() {
               onChange={setDataAssistida}
               type="date"
             />
-            <PosterInput value={posterUrl} onChange={setPosterUrl} />
+
+            <PosterInput
+              value={posterUrl}
+              onChange={setPosterUrl}
+            />
+
             <FloatTextarea
               label="Observações"
               value={observacoes}
