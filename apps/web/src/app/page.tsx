@@ -27,14 +27,11 @@ export default function HomePage() {
 
   useEffect(() => {
     const shown = sessionStorage.getItem('splash_shown');
-    setShowSplash(!shown);
-    setMounted(true);
-
-    if (!sessionStorage.getItem('splashShown')) {
+    if (!shown) {
+      sessionStorage.setItem('splash_shown', '1');
       setShowSplash(true);
-      sessionStorage.setItem('splashShown', 'true');
     }
-
+    setMounted(true);
   }, []);
 
   if (!mounted) return null;
@@ -46,10 +43,7 @@ export default function HomePage() {
       <AnimatePresence>
         {showSplash && (
 
-          <SplashScreen onFinish={() => {
-            sessionStorage.setItem('splash_shown', '1');
-            setShowSplash(false);
-          }} />
+          <SplashScreen onFinish={() => setShowSplash(false)} />
 
 
 

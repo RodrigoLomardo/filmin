@@ -293,14 +293,14 @@ function VoteButton({
       onClick={onClick}
       disabled={disabled}
       className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-colors duration-200 ${active
-          ? isYes
-            ? 'border-green-400 bg-green-500 text-white'
-            : 'border-red-400 bg-red-500 text-white'
-          : disabled
-            ? 'cursor-not-allowed border-white/10 bg-white/5 text-white/20'
-            : isYes
-              ? 'border-white/20 bg-white/5 text-white/50 hover:border-green-400/50 hover:text-green-400'
-              : 'border-white/20 bg-white/5 text-white/50 hover:border-red-400/50 hover:text-red-400'
+        ? isYes
+          ? 'border-green-400 bg-green-500 text-white'
+          : 'border-red-400 bg-red-500 text-white'
+        : disabled
+          ? 'cursor-not-allowed border-white/10 bg-white/5 text-white/20'
+          : isYes
+            ? 'border-white/20 bg-white/5 text-white/50 hover:border-green-400/50 hover:text-green-400'
+            : 'border-white/20 bg-white/5 text-white/50 hover:border-red-400/50 hover:text-red-400'
         }`}
       whileTap={!disabled ? { scale: 0.85 } : {}}
       whileHover={!disabled && !active ? { scale: 1.08 } : {}}
@@ -401,8 +401,8 @@ function ResultScreen({
         <motion.button
           onClick={onRestart}
           className={`w-full rounded-full py-3.5 text-sm font-semibold ${onSortear
-              ? 'border border-white/15 text-white/50'
-              : 'bg-pink-500 text-white'
+            ? 'border border-white/15 text-white/50'
+            : 'bg-pink-500 text-white'
             }`}
           whileTap={{ scale: 0.96 }}
         >
@@ -783,8 +783,8 @@ function SorteioMatchScreen({
 
                   <button
                     className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${holding
-                        ? 'bg-pink-500/20 text-pink-400'
-                        : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
+                      ? 'bg-pink-500/20 text-pink-400'
+                      : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
                       }`}
                     onMouseDown={startHold}
                     onMouseUp={holding ? finishHold : undefined}
