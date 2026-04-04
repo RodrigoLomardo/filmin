@@ -79,13 +79,26 @@ export default function MatchPage() {
   if (pool.length === 0) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black px-6 text-center">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-pink-500">Modo Match</p>
-        <p className="text-sm text-white/60">Nenhum item na lista &quot;Quero Assistir&quot;.</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-pink-500">
+          Modo Match
+        </p>
+
+        <p className="text-sm text-white/60">
+          Nenhum item na lista &quot;Quero Assistir&quot;.
+        </p>
+
         <Link
           href="/cadastro"
           className="mt-2 rounded-full bg-pink-500 px-6 py-2.5 text-sm font-semibold text-white"
         >
           Adicionar itens
+        </Link>
+
+        <Link
+          href="/"
+          className="rounded-full border border-zinc-700 px-6 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/40 hover:text-white"
+        >
+          Voltar ao início
         </Link>
       </div>
     );
@@ -213,9 +226,8 @@ export default function MatchPage() {
           transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           <div
-            className={`relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-zinc-900 shadow-2xl transition-all duration-300 ${
-              isMatch ? 'ring-2 ring-green-400' : 'ring-1 ring-white/10'
-            }`}
+            className={`relative aspect-[2/3] w-full overflow-hidden rounded-2xl bg-zinc-900 shadow-2xl transition-all duration-300 ${isMatch ? 'ring-2 ring-green-400' : 'ring-1 ring-white/10'
+              }`}
           >
             {currentItem.posterUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -280,8 +292,7 @@ function VoteButton({
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
-        active
+      className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-colors duration-200 ${active
           ? isYes
             ? 'border-green-400 bg-green-500 text-white'
             : 'border-red-400 bg-red-500 text-white'
@@ -290,7 +301,7 @@ function VoteButton({
             : isYes
               ? 'border-white/20 bg-white/5 text-white/50 hover:border-green-400/50 hover:text-green-400'
               : 'border-white/20 bg-white/5 text-white/50 hover:border-red-400/50 hover:text-red-400'
-      }`}
+        }`}
       whileTap={!disabled ? { scale: 0.85 } : {}}
       whileHover={!disabled && !active ? { scale: 1.08 } : {}}
     >
@@ -389,11 +400,10 @@ function ResultScreen({
         )}
         <motion.button
           onClick={onRestart}
-          className={`w-full rounded-full py-3.5 text-sm font-semibold ${
-            onSortear
+          className={`w-full rounded-full py-3.5 text-sm font-semibold ${onSortear
               ? 'border border-white/15 text-white/50'
               : 'bg-pink-500 text-white'
-          }`}
+            }`}
           whileTap={{ scale: 0.96 }}
         >
           Jogar novamente
@@ -772,11 +782,10 @@ function SorteioMatchScreen({
                   </svg>
 
                   <button
-                    className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${
-                      holding
+                    className={`relative z-10 flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full transition-colors duration-200 ${holding
                         ? 'bg-pink-500/20 text-pink-400'
                         : 'bg-zinc-900 text-white/60 hover:bg-zinc-800 hover:text-white/80'
-                    }`}
+                      }`}
                     onMouseDown={startHold}
                     onMouseUp={holding ? finishHold : undefined}
                     onMouseLeave={cancelHold}
