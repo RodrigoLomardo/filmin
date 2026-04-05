@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock } from 'lucide-react';
+import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -63,6 +63,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
 
   // Editing state
   const [editing, setEditing] = useState<'profile' | 'email' | 'password' | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -180,6 +181,17 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
       setSaveError(err instanceof Error ? err.message : 'Erro ao atualizar senha.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleCopyCode() {
+    if (!group?.inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(group.inviteCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      // Clipboard not available
     }
   }
 
@@ -437,6 +449,34 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
                 </AnimatePresence>
 
                 <div className="h-px bg-[var(--border)] my-1" />
+
+                {/* ── Section: Grupo ── */}
+                {group?.tipo === 'duo' && group.inviteCode && (
+                  <>
+                    <SectionHeader label="Grupo" />
+                    <div className="px-1 pb-1">
+                      <p className="mb-1.5 text-[10px] text-zinc-600">Código de convite</p>
+                      <div className="flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 ring-1 ring-zinc-800">
+                        <span className="flex-1 font-mono text-sm tracking-[0.22em] text-pink-400">
+                          {group.inviteCode}
+                        </span>
+                        <button
+                          onClick={handleCopyCode}
+                          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
+                        >
+                          {codeCopied
+                            ? <Check size={12} className="text-green-400" />
+                            : <Copy size={12} />}
+                          {codeCopied ? 'Copiado!' : 'Copiar'}
+                        </button>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-zinc-700">
+                        Compartilhe com sua dupla para ela entrar no grupo.
+                      </p>
+                    </div>
+                    <div className="h-px bg-[var(--border)] my-1" />
+                  </>
+                )}
 
                 {/* Sign out */}
                 <button
