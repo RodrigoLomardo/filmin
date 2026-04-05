@@ -620,5 +620,7 @@ function translateAuthError(message: string): string {
     return 'Este e-mail já está cadastrado.';
   if (message.includes('Password should be at least'))
     return 'A senha deve ter pelo menos 6 caracteres.';
+  if (message.includes('rate limit') || message.includes('too many requests') || message.includes('429'))
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   return 'Algo deu errado. Tente novamente.';
 }
