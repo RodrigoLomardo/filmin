@@ -452,8 +452,7 @@ export function CreateWatchItemForm() {
 
     mutation.mutate({
       titulo,
-      tituloOriginal: tituloOriginal || undefined,
-      anoLancamento: Number(anoLancamento),
+      anoLancamento: anoLancamento ? Number(anoLancamento) : undefined,
       tipo,
       status,
       notaDele: shouldShowNotas && notaDele ? Number(notaDele) : undefined,
@@ -567,18 +566,13 @@ export function CreateWatchItemForm() {
               onChange={setTitulo}
               required
             />
-            <FloatInput
-              label="Título original"
-              value={tituloOriginal}
-              onChange={setTituloOriginal}
-            />
+            {/* Título original removido — apenas um campo de título */}
             <FloatInput
               label="Ano de lançamento"
               value={anoLancamento}
               onChange={setAnoLancamento}
               type="number"
               inputMode="numeric"
-              required
             />
           </div>
         </motion.section>
@@ -719,8 +713,8 @@ export function CreateWatchItemForm() {
           )}
         </AnimatePresence>
 
-        {/* Section 5 — Detalhes */}
-        <motion.section
+        {/* Section 5 — Detalhes (temporariamente oculto) */}
+        {/* <motion.section
           custom={3}
           initial="hidden"
           animate="visible"
@@ -747,7 +741,7 @@ export function CreateWatchItemForm() {
               onChange={setObservacoes}
             />
           </div>
-        </motion.section>
+        </motion.section> */}
 
         {/* Section 6 — Gêneros */}
         {generos.length > 0 && (

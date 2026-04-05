@@ -42,7 +42,7 @@ export type WatchItemsResponse = {
 export type CreateWatchItemPayload = {
   titulo: string;
   tituloOriginal?: string;
-  anoLancamento: number;
+  anoLancamento?: number;
   tipo: WatchItemTipo;
   status: WatchItemStatus;
   notaDele?: number;
