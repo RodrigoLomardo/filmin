@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import { Group } from './entities/group.entity';
@@ -58,7 +58,7 @@ export class GroupsService {
   async createDuo(profileId: string): Promise<Group> {
     await this.assertNoGroup(profileId);
 
-    const inviteCode = randomBytes(8).toString('base64url');
+    const inviteCode = generateInviteCode();
 
     const group = this.groupsRepo.create({ tipo: GroupTipo.DUO, inviteCode });
     const savedGroup = await this.groupsRepo.save(group);
@@ -81,7 +81,7 @@ export class GroupsService {
    */
   async joinByInviteCode(profileId: string, inviteCode: string): Promise<Group> {
     const group = await this.groupsRepo.findOne({
-      where: { inviteCode },
+      where: { inviteCode: ILike(inviteCode) },
       relations: { members: true },
     });
 
@@ -123,4 +123,14 @@ export class GroupsService {
       relations: { members: { profile: true } },
     }) as Promise<Group>;
   }
+}
+
+/**
+ * Gera um código de convite com apenas letras maiúsculas e números,
+ * excluindo caracteres ambíguos (0, O, 1, I) para facilitar a digitação.
+ */
+function generateInviteCode(length = 8): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(length);
+  return Array.from(bytes).map((b) => chars[b % chars.length]).join('');
 }
