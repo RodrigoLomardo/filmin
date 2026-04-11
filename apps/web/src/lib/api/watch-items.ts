@@ -46,3 +46,14 @@ export async function updateWatchItem(id: string, payload: UpdateWatchItemPayloa
 export async function getMatchPool() {
   return apiFetch<WatchItem[]>('/watch-items/match-pool');
 }
+
+export async function getPendingRatings() {
+  return apiFetch<WatchItem[]>('/watch-items/pending');
+}
+
+export async function rateWatchItem(id: string, nota: number) {
+  return apiFetch<WatchItem>(`/watch-items/${id}/rate`, {
+    method: 'PATCH',
+    body: JSON.stringify({ nota }),
+  });
+}

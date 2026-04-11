@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Film, Tv, BookOpen, Star } from 'lucide-react';
+import { Film, Tv, BookOpen, Star, Clock } from 'lucide-react';
 import { WatchItem } from '@/types/watch-item';
 import { EditWatchItemModal } from './edit-watch-item-modal';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
@@ -87,8 +87,15 @@ export function WatchItemCard({ item, index }: Props) {
 
             {/* Bottom row */}
             <div className="flex items-center justify-between gap-2">
-              {/* Genres */}
-              {item.generos.length > 0 ? (
+              {/* Genres or awaiting badge */}
+              {item.ratingStatus === 'awaiting_partner' ? (
+                <div className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
+                  <Clock size={9} className="text-amber-400" />
+                  <span className="text-[10px] font-medium text-amber-400">
+                    Aguardando parceiro
+                  </span>
+                </div>
+              ) : item.generos.length > 0 ? (
                 <div className="flex min-w-0 gap-1 overflow-hidden">
                   {item.generos.slice(0, 2).map((g) => (
                     <span

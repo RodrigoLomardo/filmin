@@ -14,6 +14,8 @@ import {
 } from 'typeorm';
 import { WatchItemStatus } from '../../../common/enums/watch-item-status.enum';
 import { WatchItemTipo } from '../../../common/enums/watch-item-tipo.enum';
+import { RatingStatus } from '../../../common/enums/rating-status.enum';
+import { RatingField } from '../../../common/enums/rating-field.enum';
 import { Genero } from '../../generos/entities/genero.entity';
 import { Temporada } from '../../temporadas/entities/temporada.entity';
 import { Group } from '../../groups/entities/group.entity';
@@ -101,6 +103,35 @@ export class WatchItem {
 
   @Column({ name: 'poster_url', type: 'text', nullable: true })
   posterUrl?: string | null;
+
+  @Index()
+  @Column({
+    name: 'rating_status',
+    type: 'enum',
+    enum: RatingStatus,
+    enumName: 'rating_status_enum',
+    nullable: true,
+  })
+  ratingStatus?: RatingStatus | null;
+
+  @Index()
+  @Column({ name: 'pending_for_profile_id', type: 'uuid', nullable: true })
+  pendingForProfileId?: string | null;
+
+  @Column({ name: 'first_rating_by_profile_id', type: 'uuid', nullable: true })
+  firstRatingByProfileId?: string | null;
+
+  @Column({
+    name: 'first_rating_field',
+    type: 'enum',
+    enum: RatingField,
+    enumName: 'rating_field_enum',
+    nullable: true,
+  })
+  firstRatingField?: RatingField | null;
+
+  @Column({ name: 'last_rating_at', type: 'timestamptz', nullable: true })
+  lastRatingAt?: Date | null;
 
   @Index()
   @Column({ name: 'group_id', type: 'uuid' })

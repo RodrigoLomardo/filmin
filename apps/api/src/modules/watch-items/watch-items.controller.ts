@@ -21,6 +21,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateWatchItemDto } from './dto/create-watch-item.dto';
 import { UpdateWatchItemDto } from './dto/update-watch-item.dto';
+import { RateWatchItemDto } from './dto/rate-watch-item.dto';
 import { FindAllWatchItemsQueryDto } from './dto/find-all-watch-items-query.dto';
 import { WatchItemsService } from './watch-items.service';
 
@@ -37,7 +38,7 @@ export class WatchItemsController {
     @Body() createWatchItemDto: CreateWatchItemDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.watchItemsService.create(createWatchItemDto, groupId, user.groupTipo);
+    return this.watchItemsService.create(createWatchItemDto, groupId, user.groupTipo, user.profileId);
   }
 
   @Get()
@@ -65,6 +66,13 @@ export class WatchItemsController {
     return this.watchItemsService.getMatchPool(groupId);
   }
 
+  @Get('pending')
+  @ApiOperation({ summary: 'Listar itens pendentes de avaliação pelo usuário atual (apenas grupos Duo)' })
+  findPending(@CurrentUser() user: AuthenticatedUser) {
+    const groupId = this.requireGroupId(user);
+    return this.watchItemsService.findPending(groupId, user.profileId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar um watch item por id' })
   @ApiParam({ name: 'id', example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
@@ -74,6 +82,19 @@ export class WatchItemsController {
   ) {
     const groupId = this.requireGroupId(user);
     return this.watchItemsService.findOne(id, groupId);
+  }
+
+  @Patch(':id/rate')
+  @ApiOperation({ summary: 'Submeter avaliação do parceiro (apenas grupos Duo)' })
+  @ApiParam({ name: 'id', example: '3fa85f64-5717-4562-b3fc-2c963f66afa6' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  rate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() rateWatchItemDto: RateWatchItemDto,
+  ) {
+    const groupId = this.requireGroupId(user);
+    return this.watchItemsService.rate(id, rateWatchItemDto, groupId, user.groupTipo, user.profileId);
   }
 
   @Patch(':id')
@@ -86,7 +107,7 @@ export class WatchItemsController {
     @Body() updateWatchItemDto: UpdateWatchItemDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.watchItemsService.update(id, updateWatchItemDto, groupId, user.groupTipo);
+    return this.watchItemsService.update(id, updateWatchItemDto, groupId, user.groupTipo, user.profileId);
   }
 
   @Delete(':id')
