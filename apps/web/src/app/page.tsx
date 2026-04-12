@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Heart, Shuffle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
@@ -8,7 +8,15 @@ import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashbo
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
 import { AvatarButton, ProfileModal } from '@/components/profile-modal';
+import {
+  PendingRatingNotificationModal,
+  PendingNotificationButton,
+  markPendingDismissed,
+  clearPendingDismissed,
+  isPendingDismissed,
+} from '@/components/watch-items/pending-rating-notification';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
+import { usePendingRatings } from '@/lib/hooks/use-pending-ratings';
 
 
 export default function HomePage() {
@@ -17,6 +25,30 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const autoShownRef = useRef(false);
+
+  const pendingItems = usePendingRatings();
+
+  // Auto-open after a short delay on first load, if not dismissed
+  useEffect(() => {
+    if (pendingItems.length === 0) return;
+    if (autoShownRef.current) return;
+    if (isPendingDismissed()) return;
+    autoShownRef.current = true;
+    const timer = setTimeout(() => setPendingOpen(true), 1500);
+    return () => clearTimeout(timer);
+  }, [pendingItems.length]);
+
+  function handleDismiss() {
+    markPendingDismissed();
+    setPendingOpen(false);
+  }
+
+  function handleBellClick() {
+    clearPendingDismissed();
+    setPendingOpen(true);
+  }
 
   const menuItems = [
     groupTipo === 'duo'
@@ -39,6 +71,12 @@ export default function HomePage() {
   return (
     <>
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <PendingRatingNotificationModal
+        items={pendingItems}
+        open={pendingOpen}
+        onClose={() => setPendingOpen(false)}
+        onDismiss={handleDismiss}
+      />
 
       <AnimatePresence>
         {showSplash && (
@@ -68,7 +106,13 @@ export default function HomePage() {
                 <p className="text-sm uppercase tracking-[0.2em] text-pink-500">Filmin</p>
                 <h1 className="text-3xl font-bold">Seus filmes, séries e livros</h1>
               </div>
-              <AvatarButton onClick={() => setProfileOpen(true)} />
+              <div className="flex items-center gap-2">
+                <PendingNotificationButton
+                  count={pendingItems.length}
+                  onClick={handleBellClick}
+                />
+                <AvatarButton onClick={() => setProfileOpen(true)} />
+              </div>
             </MotionDiv>
 
             <WatchItemsDashboard />

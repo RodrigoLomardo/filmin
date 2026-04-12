@@ -9,6 +9,8 @@ export type WatchItemStatus =
   | 'quero_assistir'
   | 'abandonado';
 
+export type RatingStatus = 'complete' | 'awaiting_partner';
+
 export type WatchItem = {
   id: string;
   titulo: string;
@@ -23,6 +25,11 @@ export type WatchItem = {
   rewatchCount: number;
   observacoes?: string | null;
   posterUrl?: string | null;
+  ratingStatus?: RatingStatus | null;
+  pendingForProfileId?: string | null;
+  firstRatingByProfileId?: string | null;
+  firstRatingField?: 'dele' | 'dela' | null;
+  lastRatingAt?: string | null;
   createdAt: string;
   updatedAt: string;
   generos: Genero[];
@@ -42,7 +49,7 @@ export type WatchItemsResponse = {
 export type CreateWatchItemPayload = {
   titulo: string;
   tituloOriginal?: string;
-  anoLancamento: number;
+  anoLancamento?: number;
   tipo: WatchItemTipo;
   status: WatchItemStatus;
   notaDele?: number;

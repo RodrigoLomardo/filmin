@@ -11,3 +11,6 @@ npm-debug.log*
 .vercel
 CLAUDE.md
 roadmap.md
+brain.md
+docs/features
+docs/
