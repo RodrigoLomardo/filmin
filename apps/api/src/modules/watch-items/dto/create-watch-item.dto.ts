@@ -28,12 +28,13 @@ export class CreateWatchItemDto {
   @MaxLength(255)
   tituloOriginal?: string;
 
-  @ApiProperty({ example: 2014 })
+  @ApiPropertyOptional({ example: 2014 })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1888)
   @Max(2100)
-  anoLancamento: number;
+  anoLancamento?: number;
 
   @ApiProperty({ enum: WatchItemTipo, example: WatchItemTipo.FILME })
   @IsEnum(WatchItemTipo)

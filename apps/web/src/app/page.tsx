@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
-import { AvatarButton, ProfileModal } from '@/components/profile-modal';
+import { AvatarButton, GroupMembersButton, ProfileModal } from '@/components/profile-modal';
 import {
   PendingRatingNotificationModal,
   PendingNotificationButton,
@@ -111,6 +111,7 @@ export default function HomePage() {
                   count={pendingItems.length}
                   onClick={handleBellClick}
                 />
+                <GroupMembersButton />
                 <AvatarButton onClick={() => setProfileOpen(true)} />
               </div>
             </MotionDiv>

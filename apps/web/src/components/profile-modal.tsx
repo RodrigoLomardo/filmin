@@ -5,7 +5,7 @@ import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock, Copy 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMyGroup } from '@/lib/api/groups';
+import { getMyGroup, type GroupMember } from '@/lib/api/groups';
 import {
   getProfile,
   updateProfile,
@@ -48,6 +48,129 @@ export function AvatarButton({ onClick }: AvatarButtonProps) {
         <UserCircle size={18} className="text-zinc-400" />
       )}
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// GroupMembersButton — exported for use in page.tsx (duo only)
+// ---------------------------------------------------------------------------
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function memberDisplayName(member: GroupMember): string {
+  const p = member.profile;
+  if (!p) return '—';
+  const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+  return name || p.email || '—';
+}
+
+function memberInitial(member: GroupMember): string {
+  const p = member.profile;
+  if (!p) return '?';
+  return (p.firstName?.[0] ?? p.email?.[0] ?? '?').toUpperCase();
+}
+
+export function GroupMembersButton() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data: group } = useQuery({
+    queryKey: ['group'],
+    queryFn: getMyGroup,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  // Only render for duo groups
+  if (group?.tipo !== 'duo') return null;
+
+  const members = [...(group.members ?? [])].sort(
+    (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
+  );
+  const ownerProfileId = members[0]?.profileId;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10 transition hover:ring-pink-500/60"
+        aria-label="Membros do grupo"
+      >
+        <Users size={16} className="text-zinc-300" />
+        {/* green dot indicating duo is active */}
+        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-900" />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="absolute right-0 top-11 z-50 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl shadow-black/40"
+            initial={{ opacity: 0, scale: 0.94, y: -6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: -6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-[var(--border)]">
+              <Users size={13} className="text-pink-400" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-pink-400">
+                Grupo Duo
+              </span>
+            </div>
+
+            {/* Members */}
+            <ul className="flex flex-col gap-0.5 p-2">
+              {members.map((m) => {
+                const isOwner = m.profileId === ownerProfileId;
+                return (
+                  <li
+                    key={m.id}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[0.04] transition"
+                  >
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10">
+                      <span className="text-xs font-semibold text-white">{memberInitial(m)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-zinc-200 truncate">{memberDisplayName(m)}</p>
+                      {isOwner && (
+                        <p className="text-[10px] font-medium text-pink-400">Owner</p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Footer: group created date */}
+            {group.createdAt && (
+              <div className="px-4 py-3 border-t border-[var(--border)]">
+                <p className="text-[10px] text-zinc-600">
+                  Grupo criado em{' '}
+                  <span className="text-zinc-400">{formatDate(group.createdAt)}</span>
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
