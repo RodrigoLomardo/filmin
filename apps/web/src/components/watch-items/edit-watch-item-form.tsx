@@ -232,7 +232,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
 
   const [titulo, setTitulo] = useState(item.titulo);
   const [tituloOriginal, setTituloOriginal] = useState(item.tituloOriginal ?? '');
-  const [anoLancamento, setAnoLancamento] = useState(String(item.anoLancamento));
+  const [anoLancamento, setAnoLancamento] = useState(item.anoLancamento != null ? String(item.anoLancamento) : '');
   const [status, setStatus] = useState<WatchItemStatus>(item.status);
   const [notaDele, setNotaDele] = useState(String(item.notaDele ?? ''));
   const [notaDela, setNotaDela] = useState(String(item.notaDela ?? ''));
@@ -241,6 +241,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
   const [posterUrl, setPosterUrl] = useState(item.posterUrl ?? '');
   const [generosIds, setGenerosIds] = useState<string[]>(item.generos.map((g) => g.id));
   const [errorMessage, setErrorMessage] = useState('');
+  const [genreAlert, setGenreAlert] = useState(false);
 
   const [temporadas, setTemporadas] = useState(
     item.temporadas
@@ -270,7 +271,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
       await updateWatchItem(item.id, {
         titulo,
         tituloOriginal: tituloOriginal || undefined,
-        anoLancamento: Number(anoLancamento),
+        anoLancamento: anoLancamento ? Number(anoLancamento) : undefined,
         status,
         notaDele: shouldShowNotas && notaDele ? Number(notaDele) : undefined,
         notaDela: shouldShowNotas && notaDela ? Number(notaDela) : undefined,
@@ -339,6 +340,14 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setErrorMessage('');
+
+    if (generosIds.length === 0) {
+      setGenreAlert(true);
+      setTimeout(() => setGenreAlert(false), 2800);
+      document.getElementById('edit-generos-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     mutation.mutate();
   }
 
@@ -384,7 +393,6 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
             onChange={setAnoLancamento}
             type="number"
             inputMode="numeric"
-            required
           />
         </div>
       </motion.section>
@@ -507,9 +515,63 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
 
       {/* ── Gêneros ── */}
       {generos.length > 0 && (
-        <motion.section custom={3} initial="hidden" animate="visible" variants={sectionVariants}>
+        <motion.section
+          id="edit-generos-section"
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={sectionVariants}
+        >
           <SectionLabel>Gêneros</SectionLabel>
-          <div className="flex flex-wrap gap-2">
+
+          {/* Alert banner */}
+          <AnimatePresence>
+            {genreAlert && (
+              <motion.div
+                key="genre-alert"
+                initial={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 10, marginBottom: 14 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                style={{ overflow: 'hidden' }}
+              >
+                <motion.div
+                  animate={{ opacity: [0.75, 1, 0.75] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="flex items-center gap-3 rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-amber-500/25"
+                >
+                  <motion.span
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 0.65, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.4 }}
+                    className="text-xl leading-none select-none"
+                  >
+                    👇
+                  </motion.span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-400 leading-snug">
+                      Escolha ao menos um gênero
+                    </p>
+                    <p className="mt-0.5 text-xs text-amber-400/60">
+                      Toque em um dos itens abaixo para continuar
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Pills with pulsing ring on alert */}
+          <motion.div
+            className="flex flex-wrap gap-2 rounded-2xl p-0.5"
+            animate={genreAlert
+              ? { boxShadow: ['0 0 0 0px rgba(251,191,36,0)', '0 0 0 2px rgba(251,191,36,0.35)', '0 0 0 0px rgba(251,191,36,0)'] }
+              : { boxShadow: '0 0 0 0px rgba(251,191,36,0)' }
+            }
+            transition={genreAlert
+              ? { duration: 1.4, repeat: 1, ease: 'easeInOut' }
+              : { duration: 0.4 }
+            }
+          >
             {generos.map((genero, i) => {
               const active = generosIds.includes(genero.id);
               return (
@@ -541,7 +603,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                 </motion.button>
               );
             })}
-          </div>
+          </motion.div>
         </motion.section>
       )}
 

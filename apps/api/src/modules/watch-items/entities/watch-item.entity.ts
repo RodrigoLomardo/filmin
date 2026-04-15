@@ -45,8 +45,8 @@ export class WatchItem {
   tituloOriginal?: string | null;
 
   @Index()
-  @Column({ name: 'ano_lancamento', type: 'int' })
-  anoLancamento: number;
+  @Column({ name: 'ano_lancamento', type: 'int', nullable: true })
+  anoLancamento?: number | null;
 
   @Index()
   @Column({

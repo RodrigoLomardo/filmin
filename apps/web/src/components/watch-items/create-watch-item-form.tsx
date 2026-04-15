@@ -398,19 +398,7 @@ export function CreateWatchItemForm() {
         return;
       }
 
-      setSuccessMessage('Item adicionado ao acervo!');
-      setTitulo('');
-      setTituloOriginal('');
-      setAnoLancamento('');
-      setTipo('filme');
-      setStatus('quero_assistir');
-      setNotaDele('');
-      setNotaDela('');
-      setDataAssistida('');
-      setObservacoes('');
-      setPosterUrl('');
-      setGenerosIds([]);
-      setTemporadas([]);
+      router.push('/');
     },
     onError: (error: Error) => {
       setSuccessMessage('');
