@@ -361,6 +361,7 @@ export function CreateWatchItemForm() {
   >([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [genreAlert, setGenreAlert] = useState(false);
 
   const { data: generos = [] } = useQuery({
     queryKey: ['generos'],
@@ -397,19 +398,7 @@ export function CreateWatchItemForm() {
         return;
       }
 
-      setSuccessMessage('Item adicionado ao acervo!');
-      setTitulo('');
-      setTituloOriginal('');
-      setAnoLancamento('');
-      setTipo('filme');
-      setStatus('quero_assistir');
-      setNotaDele('');
-      setNotaDela('');
-      setDataAssistida('');
-      setObservacoes('');
-      setPosterUrl('');
-      setGenerosIds([]);
-      setTemporadas([]);
+      router.push('/');
     },
     onError: (error: Error) => {
       setSuccessMessage('');
@@ -449,6 +438,14 @@ export function CreateWatchItemForm() {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    if (generosIds.length === 0) {
+      setGenreAlert(true);
+      setTimeout(() => setGenreAlert(false), 2800);
+      // scroll genre section into view
+      document.getElementById('generos-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     mutation.mutate({
       titulo,
@@ -745,9 +742,63 @@ export function CreateWatchItemForm() {
 
         {/* Section 6 — Gêneros */}
         {generos.length > 0 && (
-          <motion.section custom={4} initial="hidden" animate="visible" variants={sectionVariants}>
+          <motion.section
+            id="generos-section"
+            custom={4}
+            initial="hidden"
+            animate="visible"
+            variants={sectionVariants}
+          >
             <SectionLabel>Gêneros</SectionLabel>
-            <div className="flex flex-wrap gap-2">
+
+            {/* Alert banner — slides in below label */}
+            <AnimatePresence>
+              {genreAlert && (
+                <motion.div
+                  key="genre-alert"
+                  initial={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 10, marginBottom: 14 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <motion.div
+                    animate={{ opacity: [0.75, 1, 0.75] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="flex items-center gap-3 rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-amber-500/25"
+                  >
+                    <motion.span
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.65, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.4 }}
+                      className="text-xl leading-none select-none"
+                    >
+                      👇
+                    </motion.span>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-400 leading-snug">
+                        Escolha ao menos um gênero
+                      </p>
+                      <p className="mt-0.5 text-xs text-amber-400/60">
+                        Toque em um dos itens abaixo para continuar
+                      </p>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Genre pills with pulsing ring on alert */}
+            <motion.div
+              className="flex flex-wrap gap-2 rounded-2xl p-0.5"
+              animate={genreAlert
+                ? { boxShadow: ['0 0 0 0px rgba(251,191,36,0)', '0 0 0 2px rgba(251,191,36,0.35)', '0 0 0 0px rgba(251,191,36,0)'] }
+                : { boxShadow: '0 0 0 0px rgba(251,191,36,0)' }
+              }
+              transition={genreAlert
+                ? { duration: 1.4, repeat: 1, ease: 'easeInOut' }
+                : { duration: 0.4 }
+              }
+            >
               {generos.map((genero, i) => {
                 const active = generosIds.includes(genero.id);
                 return (
@@ -779,7 +830,7 @@ export function CreateWatchItemForm() {
                   </motion.button>
                 );
               })}
-            </div>
+            </motion.div>
           </motion.section>
         )}
       </form>

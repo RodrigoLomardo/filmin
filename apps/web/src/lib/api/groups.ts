@@ -2,10 +2,18 @@ import { apiFetch } from './client';
 
 export type GroupTipo = 'solo' | 'duo';
 
+export type ProfileSummary = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+};
+
 export type GroupMember = {
   id: string;
   profileId: string;
   joinedAt: string;
+  profile?: ProfileSummary;
 };
 
 export type Group = {
@@ -13,6 +21,7 @@ export type Group = {
   tipo: GroupTipo;
   inviteCode: string | null;
   members: GroupMember[];
+  createdAt: string;
 };
 
 export async function getMyGroup(): Promise<Group | null> {
