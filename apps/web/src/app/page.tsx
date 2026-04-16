@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Plus, Heart, Shuffle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
@@ -21,8 +21,22 @@ import { usePendingRatings } from '@/lib/hooks/use-pending-ratings';
 
 export default function HomePage() {
   const groupTipo = useGroupTipo();
-  const [showSplash, setShowSplash] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  // Lê sessionStorage no lazy initializer — sem effect, sem render em cascata
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const shown = sessionStorage.getItem('splash_shown');
+    if (!shown) {
+      sessionStorage.setItem('splash_shown', '1');
+      return true;
+    }
+    return false;
+  });
+  // useSyncExternalStore: client=true / SSR=false, sem useEffect nem setState em cascata
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [menuAberto, setMenuAberto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
@@ -56,14 +70,7 @@ export default function HomePage() {
     { label: 'Novo item', href: '/cadastro', icon: Plus },
   ];
 
-  useEffect(() => {
-    const shown = sessionStorage.getItem('splash_shown');
-    if (!shown) {
-      sessionStorage.setItem('splash_shown', '1');
-      setShowSplash(true);
-    }
-    setMounted(true);
-  }, []);
+
 
   if (!mounted) return null;
 
