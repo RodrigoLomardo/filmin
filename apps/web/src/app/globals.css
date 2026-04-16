@@ -52,3 +52,19 @@ a {
 .field-input:focus {
   border-color: #ff2ea6;
 }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #111113 0%,
+    #1c1c20 50%,
+    #111113 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}

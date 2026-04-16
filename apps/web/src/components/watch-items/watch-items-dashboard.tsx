@@ -11,7 +11,7 @@ export function WatchItemsDashboard() {
   const [tipo, setTipo] = useState<WatchItemTipo | 'todos'>('todos');
 
   return (
-    <section className="space-y-4">
+    <section className="flex flex-col gap-3">
       <WatchItemsTabs value={status} onChange={setStatus} />
       <WatchItemsTypeFilter value={tipo} onChange={setTipo} />
       <WatchItemsList status={status} tipo={tipo} />
