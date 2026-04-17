@@ -10,9 +10,18 @@ import { StreakHelpModal } from './streak-help-modal';
 
 type View = 'none' | 'streak' | 'help';
 
-export function StreakDisplay() {
+interface StreakDisplayProps {
+  onModalOpenChange?: (isOpen: boolean) => void;
+}
+
+export function StreakDisplay({ onModalOpenChange }: StreakDisplayProps) {
   const { data: streak, isLoading } = useStreak();
   const [view, setView] = useState<View>('none');
+
+  function changeView(next: View) {
+    setView(next);
+    onModalOpenChange?.(next !== 'none');
+  }
 
   if (isLoading || !streak) {
     return <div className="h-8 w-14 animate-pulse rounded-full bg-zinc-800/60" />;
@@ -25,7 +34,7 @@ export function StreakDisplay() {
       {/* Trigger button */}
       <motion.button
         className="flex items-center gap-0.5 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-zinc-800/60 active:bg-zinc-800"
-        onClick={() => setView('streak')}
+        onClick={() => changeView('streak')}
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -47,16 +56,16 @@ export function StreakDisplay() {
       {/* Modal do foguinho */}
       <StreakModal
         open={view === 'streak'}
-        onClose={() => setView('none')}
-        onHelp={() => setView('help')}
+        onClose={() => changeView('none')}
+        onHelp={() => changeView('help')}
         streak={streak}
       />
 
       {/* Modal de ajuda */}
       <StreakHelpModal
         open={view === 'help'}
-        onBack={() => setView('streak')}
-        onClose={() => setView('none')}
+        onBack={() => changeView('streak')}
+        onClose={() => changeView('none')}
       />
     </>
   );
