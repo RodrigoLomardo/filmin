@@ -4,9 +4,10 @@ import { Temporada } from './entities/temporada.entity';
 import { WatchItem } from '../watch-items/entities/watch-item.entity';
 import { TemporadasController } from './temporadas.controller';
 import { TemporadasService } from './temporadas.service';
+import { StreakModule } from '../streak/streak.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Temporada, WatchItem])],
+  imports: [TypeOrmModule.forFeature([Temporada, WatchItem]), StreakModule],
   controllers: [TemporadasController],
   providers: [TemporadasService],
   exports: [TemporadasService],

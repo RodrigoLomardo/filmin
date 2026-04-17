@@ -17,6 +17,7 @@ import { CreateWatchItemDto } from './dto/create-watch-item.dto';
 import { UpdateWatchItemDto } from './dto/update-watch-item.dto';
 import { RateWatchItemDto } from './dto/rate-watch-item.dto';
 import { FindAllWatchItemsQueryDto } from './dto/find-all-watch-items-query.dto';
+import { StreakService } from '../streak/streak.service';
 
 @Injectable()
 export class WatchItemsService {
@@ -29,6 +30,8 @@ export class WatchItemsService {
 
     @InjectRepository(GroupMember)
     private readonly groupMemberRepository: Repository<GroupMember>,
+
+    private readonly streakService: StreakService,
   ) { }
 
   async create(
@@ -88,7 +91,11 @@ export class WatchItemsService {
       generos,
     });
 
-    return await this.watchItemRepository.save(watchItem);
+    const saved = await this.watchItemRepository.save(watchItem);
+
+    void this.streakService.registerActivity(groupId);
+
+    return saved;
   }
 
   async findAll(query: FindAllWatchItemsQueryDto, groupId: string) {
@@ -224,7 +231,11 @@ export class WatchItemsService {
     watchItem.pendingForProfileId = null;
     watchItem.lastRatingAt = new Date();
 
-    return await this.watchItemRepository.save(watchItem);
+    const saved = await this.watchItemRepository.save(watchItem);
+
+    void this.streakService.registerActivity(groupId);
+
+    return saved;
   }
 
   async update(id: string, updateWatchItemDto: UpdateWatchItemDto, groupId: string, groupTipo: GroupTipo | null, profileId: string) {
