@@ -89,12 +89,15 @@ export function getTierLabel(sequencia: number): string {
 
 interface StreakFireProps {
   sequencia: number;
+  /** Sobrescreve o estado vivo/apagado. Se omitido, usa sequencia === 0. */
+  isActive?: boolean;
   size?: number;
 }
 
-export function StreakFire({ sequencia, size = 32 }: StreakFireProps) {
+export function StreakFire({ sequencia, isActive, size = 32 }: StreakFireProps) {
   const theme = getFireTheme(sequencia);
-  const isDead = sequencia === 0;
+  // isDead: apagado se nunca houve atividade OU se o período atual expirou
+  const isDead = isActive !== undefined ? !isActive : sequencia === 0;
 
   return (
     <motion.div

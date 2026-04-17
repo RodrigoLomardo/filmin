@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStreak } from '@/lib/hooks/use-streak';
+import { isFireActive } from '@/lib/streak-utils';
 import { StreakFire } from './streak-fire';
 import { StreakModal } from './streak-modal';
 
@@ -14,10 +15,12 @@ export function StreakDisplay() {
     return <div className="h-8 w-14 animate-pulse rounded-full bg-zinc-800/60" />;
   }
 
+  const active = isFireActive(streak);
+
   return (
     <>
       <motion.button
-        className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-zinc-800/60 active:bg-zinc-800"
+        className="flex items-center gap-0.5 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-zinc-800/60 active:bg-zinc-800"
         onClick={() => setModalOpen(true)}
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -25,7 +28,7 @@ export function StreakDisplay() {
         whileTap={{ scale: 0.93 }}
         aria-label="Ver streak"
       >
-        <StreakFire sequencia={streak.sequenciaAtual} size={28} />
+        <StreakFire sequencia={streak.sequenciaAtual} isActive={active} size={28} />
         <motion.span
           key={streak.sequenciaAtual}
           className="text-sm font-semibold tabular-nums text-white"
