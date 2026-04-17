@@ -36,9 +36,13 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: getUser() contacts the Auth server to verify the token.
   // Do not use getSession() here — it reads from cookies without verification.
   // Always call getUser() even on public routes so session cookies are refreshed.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Network error (e.g. Supabase unreachable) — treat as unauthenticated
+  }
 
   // Public routes: always accessible.
   // Exception: authenticated user on /login → redirect home (GroupGuard resolves group there).
