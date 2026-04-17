@@ -29,7 +29,7 @@ const slideVariants = {
     opacity: 1,
     transition: {
       x: { type: 'spring' as const, stiffness: 360, damping: 36 },
-      opacity: { duration: 0.22, ease: 'easeOut' },
+      opacity: { duration: 0.22, ease: 'easeOut' as const },
     },
   },
   // Saída rápida com easeIn (parallax parcial)
