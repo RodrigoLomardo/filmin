@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Minus, Plus, Star, Tv, X } from 'lucide-react';
+import { Ban, CheckCircle2, Clock, Minus, Play, Plus, Star, X } from 'lucide-react';
 import { getGeneros } from '@/lib/api/generos';
 import { updateWatchItem } from '@/lib/api/watch-items';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
@@ -24,33 +24,40 @@ type Props = {
 const STATUS_CONFIG: {
   value: WatchItemStatus;
   label: string;
+  icon: React.ElementType;
   activeColor: string;
   activeBg: string;
+  activeBorder: string;
 }[] = [
-  { value: 'quero_assistir', label: 'Quero',      activeColor: '#a1a1aa', activeBg: 'rgb(39 39 42)' },
-  { value: 'assistindo',     label: 'Assistindo',  activeColor: '#fbbf24', activeBg: 'rgba(251,191,36,0.12)' },
-  { value: 'assistido',      label: 'Assistido',   activeColor: '#34d399', activeBg: 'rgba(52,211,153,0.12)' },
-  { value: 'abandonado',     label: 'Abandonado',  activeColor: '#f87171', activeBg: 'rgba(248,113,113,0.12)' },
+  { value: 'quero_assistir', label: 'Quero ver',  icon: Clock,        activeColor: '#a1a1aa', activeBg: 'rgba(161,161,170,0.1)', activeBorder: 'rgba(161,161,170,0.35)' },
+  { value: 'assistindo',     label: 'Assistindo', icon: Play,         activeColor: '#fbbf24', activeBg: 'rgba(251,191,36,0.1)',  activeBorder: 'rgba(251,191,36,0.35)' },
+  { value: 'assistido',      label: 'Assistido',  icon: CheckCircle2, activeColor: '#34d399', activeBg: 'rgba(52,211,153,0.1)',  activeBorder: 'rgba(52,211,153,0.35)' },
+  { value: 'abandonado',     label: 'Abandonado', icon: Ban,          activeColor: '#f87171', activeBg: 'rgba(248,113,113,0.1)', activeBorder: 'rgba(248,113,113,0.35)' },
 ];
 
-const smoothEase: [number, number, number, number] = [0.23, 1, 0.32, 1];
-
-const sectionVariants: Variants = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 14 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.38, ease: smoothEase, delay: i * 0.06 },
+    transition: {
+      duration: 0.36,
+      ease: [0.23, 1, 0.32, 1] as [number, number, number, number],
+      delay: i * 0.055,
+    },
   }),
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function Divider({ label }: { label: string }) {
   return (
-    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
-      {children}
-    </p>
+    <div className="mb-3 flex items-center gap-3">
+      <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-[0.24em] text-zinc-600">
+        {label}
+      </span>
+      <div className="h-px flex-1" style={{ background: 'rgba(63,63,70,0.5)' }} />
+    </div>
   );
 }
 
@@ -80,9 +87,9 @@ function FloatInput({
           y: floated ? '0%' : '-50%',
           fontSize: floated ? '10px' : '14px',
           color: focused ? 'rgb(236 72 153)' : floated ? 'rgb(113 113 122)' : 'rgb(82 82 91)',
-          letterSpacing: floated ? '0.1em' : '0',
+          letterSpacing: floated ? '0.08em' : '0',
         }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        transition={{ duration: 0.18, ease: 'easeOut' as const }}
         className="pointer-events-none absolute left-4 z-10 font-semibold uppercase leading-none"
       >
         {label}
@@ -96,11 +103,13 @@ function FloatInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         required={required}
-        className={`w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none transition-all duration-200 ${
-          focused
-            ? 'ring-2 ring-pink-500'
-            : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
-        }`}
+        className="w-full rounded-2xl bg-zinc-900 px-4 pb-3.5 pt-7 text-sm text-white outline-none"
+        style={{
+          boxShadow: focused
+            ? '0 0 0 1.5px rgb(236,72,153)'
+            : '0 0 0 1px rgb(39,39,42)',
+          transition: 'box-shadow 0.18s ease',
+        }}
       />
     </div>
   );
@@ -125,9 +134,9 @@ function FloatTextarea({
           top: floated ? '10px' : '18px',
           fontSize: floated ? '10px' : '14px',
           color: focused ? 'rgb(236 72 153)' : floated ? 'rgb(113 113 122)' : 'rgb(82 82 91)',
-          letterSpacing: floated ? '0.1em' : '0',
+          letterSpacing: floated ? '0.08em' : '0',
         }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        transition={{ duration: 0.18, ease: 'easeOut' as const }}
         className="pointer-events-none absolute left-4 z-10 font-semibold uppercase leading-none"
       >
         {label}
@@ -138,11 +147,13 @@ function FloatTextarea({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         rows={3}
-        className={`w-full resize-none rounded-2xl bg-zinc-900 px-4 pb-4 pt-9 text-sm text-white outline-none transition-all duration-200 ${
-          focused
-            ? 'ring-2 ring-pink-500'
-            : 'ring-1 ring-zinc-800 hover:ring-zinc-700'
-        }`}
+        className="w-full resize-none rounded-2xl bg-zinc-900 px-4 pb-4 pt-9 text-sm text-white outline-none"
+        style={{
+          boxShadow: focused
+            ? '0 0 0 1.5px rgb(236,72,153)'
+            : '0 0 0 1px rgb(39,39,42)',
+          transition: 'box-shadow 0.18s ease',
+        }}
       />
     </div>
   );
@@ -168,33 +179,38 @@ function NoteCounter({
   const pct = num != null ? (num / 10) * 100 : 0;
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl bg-zinc-900 px-4 py-5 ring-1 ring-zinc-800">
-      <div className="flex items-center gap-1.5">
-        <Star size={10} className="text-pink-400" fill="currentColor" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{label}</p>
+    <div
+      className="flex flex-col gap-3.5 rounded-2xl px-4 py-4"
+      style={{ background: 'rgb(24,24,27)', boxShadow: '0 0 0 1px rgb(39,39,42)' }}
+    >
+      <div className="flex items-center gap-2">
+        <Star size={10} fill="#ec4899" style={{ color: '#ec4899', flexShrink: 0 }} />
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500">{label}</span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <motion.button
           type="button"
           onClick={() => step(-0.5)}
-          whileTap={{ scale: 0.84 }}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 transition-colors active:bg-zinc-700"
+          whileTap={{ scale: 0.78 }}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 text-zinc-400"
         >
-          <Minus size={16} />
+          <Minus size={14} />
         </motion.button>
 
-        <div className="relative flex h-14 w-16 items-center justify-center overflow-hidden">
+        <div
+          className="relative flex flex-1 items-center justify-center overflow-hidden"
+          style={{ height: 50 }}
+        >
           <AnimatePresence mode="popLayout">
             <motion.span
               key={value || 'empty'}
-              initial={{ opacity: 0, y: -16 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-              transition={{ duration: 0.14, ease: 'easeOut' }}
-              className={`absolute text-4xl font-bold tabular-nums leading-none ${
-                num != null ? 'text-white' : 'text-zinc-700'
-              }`}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.13, ease: 'easeOut' as const }}
+              className="absolute text-[40px] font-bold tabular-nums leading-none"
+              style={{ color: num != null ? '#ec4899' : '#52525b' }}
             >
               {num != null
                 ? Number.isInteger(num) ? num : num.toFixed(1)
@@ -206,18 +222,19 @@ function NoteCounter({
         <motion.button
           type="button"
           onClick={() => step(0.5)}
-          whileTap={{ scale: 0.84 }}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-zinc-400 transition-colors active:bg-zinc-700"
+          whileTap={{ scale: 0.78 }}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 text-zinc-400"
         >
-          <Plus size={16} />
+          <Plus size={14} />
         </motion.button>
       </div>
 
-      <div className="relative h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+      <div className="relative h-[3px] overflow-hidden rounded-full bg-zinc-800">
         <motion.div
-          className="absolute left-0 top-0 h-full rounded-full bg-pink-500"
+          className="absolute left-0 top-0 h-full rounded-full"
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.25, ease: 'easeOut' as const }}
+          style={{ backgroundColor: '#ec4899' }}
         />
       </div>
     </div>
@@ -232,7 +249,9 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
 
   const [titulo, setTitulo] = useState(item.titulo);
   const [tituloOriginal, setTituloOriginal] = useState(item.tituloOriginal ?? '');
-  const [anoLancamento, setAnoLancamento] = useState(item.anoLancamento != null ? String(item.anoLancamento) : '');
+  const [anoLancamento, setAnoLancamento] = useState(
+    item.anoLancamento != null ? String(item.anoLancamento) : '',
+  );
   const [status, setStatus] = useState<WatchItemStatus>(item.status);
   const [notaDele, setNotaDele] = useState(String(item.notaDele ?? ''));
   const [notaDela, setNotaDela] = useState(String(item.notaDela ?? ''));
@@ -309,7 +328,6 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
     },
   });
 
-  // Notify parent of pending state
   useEffect(() => {
     onPendingChange?.(mutation.isPending);
   }, [mutation.isPending, onPendingChange]);
@@ -352,29 +370,43 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
   }
 
   return (
-    <form id="edit-item-form" onSubmit={handleSubmit} className="flex flex-col gap-7 pb-4">
+    <form id="edit-item-form" onSubmit={handleSubmit} className="flex flex-col gap-6 pb-4">
 
       {/* ── Status ── */}
-      <motion.section custom={0} initial="hidden" animate="visible" variants={sectionVariants}>
-        <SectionLabel>Status</SectionLabel>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {STATUS_CONFIG.map(({ value, label, activeColor, activeBg }) => {
+      <motion.section custom={0} initial="hidden" animate="visible" variants={fadeUp}>
+        <Divider label="Status" />
+        <div className="grid grid-cols-2 gap-2">
+          {STATUS_CONFIG.map(({ value, label, icon: StatusIcon, activeColor, activeBg, activeBorder }) => {
             const active = status === value;
             return (
               <motion.button
                 key={value}
                 type="button"
                 onClick={() => setStatus(value)}
-                whileTap={{ scale: 0.93 }}
+                whileTap={{ scale: 0.94 }}
                 animate={{
-                  backgroundColor: active ? activeBg : 'rgb(24 24 27)',
-                  color: active ? activeColor : 'rgb(113 113 122)',
-                  borderColor: active ? activeColor : 'rgb(63 63 70)',
+                  backgroundColor: active ? activeBg : 'rgba(24,24,27,0.7)',
+                  borderColor: active ? activeBorder : 'rgba(63,63,70,0.5)',
                 }}
                 transition={{ duration: 0.18 }}
-                className="flex flex-shrink-0 items-center rounded-full border px-4 py-2 text-sm font-medium"
+                className="relative flex items-center gap-2.5 rounded-2xl border py-3 pl-3.5 pr-3 text-left"
               >
-                {label}
+                <StatusIcon
+                  size={14}
+                  style={{ color: active ? activeColor : '#52525b', flexShrink: 0 }}
+                />
+                <span
+                  className="flex-1 text-[13px] font-medium leading-none"
+                  style={{ color: active ? activeColor : '#71717a' }}
+                >
+                  {label}
+                </span>
+                <motion.span
+                  animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.4 }}
+                  transition={{ duration: 0.18 }}
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: activeColor }}
+                />
               </motion.button>
             );
           })}
@@ -382,8 +414,8 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
       </motion.section>
 
       {/* ── Identificação ── */}
-      <motion.section custom={1} initial="hidden" animate="visible" variants={sectionVariants}>
-        <SectionLabel>Identificação</SectionLabel>
+      <motion.section custom={1} initial="hidden" animate="visible" variants={fadeUp}>
+        <Divider label="Identificação" />
         <div className="space-y-3">
           <FloatInput label="Título" value={titulo} onChange={setTitulo} required />
           <FloatInput label="Título original" value={tituloOriginal} onChange={setTituloOriginal} />
@@ -397,7 +429,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
         </div>
       </motion.section>
 
-      {/* ── Notas (filme/livro + assistido) ── */}
+      {/* ── Notas ── */}
       <AnimatePresence>
         {shouldShowNotas && (
           <motion.section
@@ -405,14 +437,11 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: 0.3, ease: 'easeOut' as const }}
             className="overflow-hidden"
           >
-            <SectionLabel>
-              <Star size={10} className="mr-1 inline -mt-0.5" />
-              Notas
-            </SectionLabel>
-            <div className={`grid gap-4 ${groupTipo === 'duo' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <Divider label="Notas" />
+            <div className={`grid gap-3 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <NoteCounter
                 label={groupTipo === 'duo' ? 'Dele' : 'Minha nota'}
                 value={notaDele}
@@ -426,7 +455,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
         )}
       </AnimatePresence>
 
-      {/* ── Temporadas (serie only) ── */}
+      {/* ── Temporadas ── */}
       <AnimatePresence>
         {isSerie && (
           <motion.section
@@ -434,14 +463,11 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: 0.3, ease: 'easeOut' as const }}
             className="overflow-hidden"
           >
-            <SectionLabel>
-              <Tv size={10} className="mr-1 inline -mt-0.5" />
-              Temporadas
-            </SectionLabel>
-            <div className="space-y-3">
+            <Divider label="Temporadas" />
+            <div className="space-y-2.5">
               <AnimatePresence>
                 {temporadas.map((t, index) => (
                   <motion.div
@@ -450,14 +476,15 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8, height: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="relative rounded-2xl bg-zinc-950 p-4 ring-1 ring-zinc-800/60"
+                    className="relative rounded-2xl p-4"
+                    style={{ background: 'rgba(24,24,27,0.8)', boxShadow: '0 0 0 1px rgba(63,63,70,0.45)' }}
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-bold text-zinc-400">
                           {t.numero}
                         </span>
-                        <span className="text-xs font-medium text-zinc-500">
+                        <span className="text-[11px] font-medium text-zinc-500">
                           Temporada {t.numero}
                         </span>
                       </div>
@@ -466,13 +493,13 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                           type="button"
                           onClick={() => removeTemporada(index)}
                           whileTap={{ scale: 0.85 }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-500 transition hover:bg-red-500/20 hover:text-red-400"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-zinc-500 transition hover:bg-red-500/20 hover:text-red-400"
                         >
-                          <X size={12} />
+                          <X size={11} />
                         </motion.button>
                       )}
                     </div>
-                    <div className={`grid gap-3 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    <div className={`grid gap-2.5 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                       <NoteCounter
                         label={groupTipo === 'duo' ? 'Dele' : 'Nota'}
                         value={t.notaDele}
@@ -494,9 +521,11 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                 type="button"
                 onClick={addTemporada}
                 whileTap={{ scale: 0.97 }}
-                className="w-full rounded-2xl border border-dashed border-zinc-800 py-3.5 text-sm font-medium text-zinc-500 transition hover:border-zinc-700 hover:text-zinc-400"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[13px] font-medium text-zinc-500 transition hover:text-zinc-400"
+                style={{ border: '1px dashed rgba(63,63,70,0.6)' }}
               >
-                + Adicionar temporada
+                <Plus size={12} />
+                Adicionar temporada
               </motion.button>
             </div>
           </motion.section>
@@ -504,8 +533,8 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
       </AnimatePresence>
 
       {/* ── Detalhes ── */}
-      <motion.section custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
-        <SectionLabel>Detalhes</SectionLabel>
+      <motion.section custom={2} initial="hidden" animate="visible" variants={fadeUp}>
+        <Divider label="Detalhes" />
         <div className="space-y-3">
           <FloatInput label="Data assistida" value={dataAssistida} onChange={setDataAssistida} type="date" />
           <FloatInput label="Poster URL" value={posterUrl} onChange={setPosterUrl} type="url" />
@@ -520,58 +549,45 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
           custom={3}
           initial="hidden"
           animate="visible"
-          variants={sectionVariants}
+          variants={fadeUp}
         >
-          <SectionLabel>Gêneros</SectionLabel>
+          <Divider label="Gêneros" />
 
-          {/* Alert banner */}
           <AnimatePresence>
             {genreAlert && (
               <motion.div
                 key="genre-alert"
-                initial={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginTop: 10, marginBottom: 14 }}
-                exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
-                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
                 style={{ overflow: 'hidden' }}
               >
-                <motion.div
-                  animate={{ opacity: [0.75, 1, 0.75] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  className="flex items-center gap-3 rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-amber-500/25"
+                <div
+                  className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                  style={{ background: 'rgba(251,191,36,0.07)', boxShadow: '0 0 0 1px rgba(251,191,36,0.18)' }}
                 >
                   <motion.span
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 0.65, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.4 }}
-                    className="text-xl leading-none select-none"
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 0.5 }}
+                    className="select-none text-lg leading-none"
                   >
                     👇
                   </motion.span>
                   <div>
-                    <p className="text-sm font-semibold text-amber-400 leading-snug">
+                    <p className="text-sm font-semibold leading-snug text-amber-400">
                       Escolha ao menos um gênero
                     </p>
-                    <p className="mt-0.5 text-xs text-amber-400/60">
-                      Toque em um dos itens abaixo para continuar
+                    <p className="mt-0.5 text-xs text-amber-400/50">
+                      Toque em um dos itens abaixo
                     </p>
                   </div>
-                </motion.div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Pills with pulsing ring on alert */}
-          <motion.div
-            className="flex flex-wrap gap-2 rounded-2xl p-0.5"
-            animate={genreAlert
-              ? { boxShadow: ['0 0 0 0px rgba(251,191,36,0)', '0 0 0 2px rgba(251,191,36,0.35)', '0 0 0 0px rgba(251,191,36,0)'] }
-              : { boxShadow: '0 0 0 0px rgba(251,191,36,0)' }
-            }
-            transition={genreAlert
-              ? { duration: 1.4, repeat: 1, ease: 'easeInOut' }
-              : { duration: 0.4 }
-            }
-          >
+          <div className="flex flex-wrap gap-2">
             {generos.map((genero, i) => {
               const active = generosIds.includes(genero.id);
               return (
@@ -581,20 +597,27 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                   onClick={() => toggleGenero(genero.id)}
                   whileTap={{ scale: 0.9 }}
                   initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1, transition: { delay: i * 0.025, duration: 0.2 } }}
-                  style={{
-                    backgroundColor: active ? 'rgb(236 72 153)' : 'rgb(24 24 27)',
-                    color: active ? 'white' : 'rgb(113 113 122)',
-                    borderColor: active ? 'rgb(236 72 153)' : 'rgb(63 63 70)',
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    backgroundColor: active ? 'rgb(236,72,153)' : 'rgba(24,24,27,0.9)',
+                    borderColor: active ? 'rgb(236,72,153)' : 'rgba(63,63,70,0.6)',
+                    color: active ? '#fff' : 'rgb(113,113,122)',
                   }}
-                  className="rounded-full border px-3.5 py-1.5 text-sm font-medium transition-shadow"
+                  transition={{
+                    opacity: { delay: i * 0.018, duration: 0.2 },
+                    scale: { delay: i * 0.018, duration: 0.2 },
+                    backgroundColor: { duration: 0.16 },
+                    borderColor: { duration: 0.16 },
+                    color: { duration: 0.16 },
+                  }}
+                  className="rounded-full border px-3.5 py-1.5 text-[13px] font-medium"
                 >
                   {active && (
                     <motion.span
                       initial={{ opacity: 0, width: 0, marginRight: 0 }}
                       animate={{ opacity: 1, width: 'auto', marginRight: 4 }}
-                      exit={{ opacity: 0, width: 0, marginRight: 0 }}
-                      className="inline-block"
+                      className="inline-block text-[10px]"
                     >
                       ✓
                     </motion.span>
@@ -603,7 +626,7 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                 </motion.button>
               );
             })}
-          </motion.div>
+          </div>
         </motion.section>
       )}
 
@@ -614,7 +637,8 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex items-center gap-2 rounded-xl bg-red-950/40 px-3.5 py-3 ring-1 ring-red-500/20"
+            className="flex items-center gap-2.5 rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(248,113,113,0.07)', boxShadow: '0 0 0 1px rgba(248,113,113,0.18)' }}
           >
             <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
             <p className="text-xs text-red-400">{errorMessage}</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Film, Tv, BookOpen, Check, Loader2 } from 'lucide-react';
 import { WatchItem } from '@/types/watch-item';
@@ -26,13 +27,14 @@ export function EditWatchItemModal({ item, onClose }: Props) {
   const Icon = item ? (TIPO_ICON[item.tipo] ?? Film) : Film;
   const tipoLabel = item ? (TIPO_LABEL[item.tipo] ?? '') : '';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {item && (
         <>
           {/* ── Backdrop ── */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-[2px]"
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -42,66 +44,128 @@ export function EditWatchItemModal({ item, onClose }: Props) {
 
           {/* ── Bottom sheet ── */}
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[28px] bg-[#0b0b0d]"
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden"
+            style={{
+              maxHeight: '92dvh',
+              borderRadius: '28px 28px 0 0',
+              background: 'linear-gradient(180deg, #121214 0%, #0b0b0d 100%)',
+              boxShadow: '0 -1px 0 rgba(255,255,255,0.05), 0 -32px 80px rgba(0,0,0,0.95)',
+            }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 280, mass: 0.85 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 300, mass: 0.85 }}
           >
             {/* Handle */}
-            <div className="flex flex-shrink-0 justify-center pt-3 pb-1">
-              <div className="h-[3px] w-9 rounded-full bg-zinc-700/80" />
+            <div className="flex flex-shrink-0 justify-center pt-3.5 pb-1">
+              <div
+                className="rounded-full"
+                style={{ width: 38, height: 4, background: 'rgba(255,255,255,0.13)' }}
+              />
             </div>
 
-            {/* ── Hero header ── */}
-            <div className="relative mx-4 mb-4 flex-shrink-0 h-[140px] overflow-hidden rounded-2xl">
-              {/* Poster blur bg or gradient */}
+            {/* ── Hero ── */}
+            <div
+              className="relative mx-4 mb-4 flex-shrink-0 overflow-hidden"
+              style={{ height: 140, borderRadius: 22 }}
+            >
+              {/* Background blur */}
               {item.posterUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.posterUrl}
                     alt=""
-                    className="absolute inset-0 h-full w-full scale-110 object-cover blur-md"
+                    aria-hidden="true"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ transform: 'scale(1.25)', filter: 'blur(18px)', opacity: 0.65 }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(120deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 100%)' }}
+                  />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }}
+                  />
                 </>
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.06]">
-                    <Icon size={80} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1c1c20 0%, #0f0f12 100%)' }}>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon size={72} style={{ color: 'rgba(255,255,255,0.04)' }} />
                   </div>
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(236,72,153,0.07) 0%, transparent 60%)' }}
+                  />
                 </div>
               )}
 
-              {/* Title overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <div className="mb-1 flex items-center gap-1.5">
-                  <Icon size={10} className="text-pink-400" />
-                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-pink-400">
-                    {tipoLabel} · {item.anoLancamento}
-                  </span>
+              {/* Content */}
+              <div className="absolute inset-0 flex items-end gap-3 p-4">
+                {/* Poster thumbnail */}
+                <div
+                  className="flex-shrink-0 overflow-hidden"
+                  style={{
+                    width: 52,
+                    height: 76,
+                    borderRadius: 11,
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.65)',
+                    background: 'rgba(255,255,255,0.05)',
+                  }}
+                >
+                  {item.posterUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.posterUrl} alt={item.titulo} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Icon size={18} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                    </div>
+                  )}
                 </div>
-                <h2 className="line-clamp-2 text-base font-bold leading-tight text-white">
-                  {item.titulo}
-                </h2>
-                {item.tituloOriginal && item.tituloOriginal !== item.titulo && (
-                  <p className="mt-0.5 truncate text-[11px] text-zinc-400">
-                    {item.tituloOriginal}
-                  </p>
-                )}
+
+                {/* Info */}
+                <div className="min-w-0 flex-1 pb-0.5">
+                  <div className="mb-1.5 flex items-center gap-1.5">
+                    <Icon size={9} className="flex-shrink-0 text-pink-400" />
+                    <span
+                      className="text-[9px] font-bold uppercase tracking-[0.22em] text-pink-400"
+                    >
+                      {tipoLabel}{item.anoLancamento ? ` · ${item.anoLancamento}` : ''}
+                    </span>
+                  </div>
+                  <h2 className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
+                    {item.titulo}
+                  </h2>
+                  {item.tituloOriginal && item.tituloOriginal !== item.titulo && (
+                    <p
+                      className="mt-0.5 truncate text-[11px]"
+                      style={{ color: 'rgba(255,255,255,0.32)' }}
+                    >
+                      {item.tituloOriginal}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Close */}
+              {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-zinc-300 backdrop-blur-sm transition hover:bg-black/70"
+                className="absolute right-3 top-3 flex items-center justify-center transition-opacity hover:opacity-80"
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.6)',
+                  backdropFilter: 'blur(8px)',
+                  color: 'rgba(255,255,255,0.7)',
+                }}
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             </div>
 
-            {/* ── Scrollable form content ── */}
+            {/* ── Scrollable form ── */}
             <div
               className="min-h-0 flex-1 overflow-y-auto px-4 pb-2"
               style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
@@ -115,9 +179,9 @@ export function EditWatchItemModal({ item, onClose }: Props) {
 
             {/* ── Sticky save footer ── */}
             <div
-              className="flex-shrink-0 px-4 pt-3"
+              className="flex-shrink-0 px-4 pt-4"
               style={{
-                background: 'linear-gradient(to top, #0b0b0d 75%, transparent)',
+                background: 'linear-gradient(to top, #0b0b0d 65%, transparent)',
                 paddingBottom: 'max(1.75rem, env(safe-area-inset-bottom))',
               }}
             >
@@ -126,17 +190,22 @@ export function EditWatchItemModal({ item, onClose }: Props) {
                 form="edit-item-form"
                 disabled={isPending}
                 whileTap={!isPending ? { scale: 0.975 } : {}}
-                className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-pink-500 py-4 text-sm font-semibold text-white shadow-lg shadow-pink-500/20 disabled:opacity-60"
+                className="relative w-full overflow-hidden py-[15px] text-[15px] font-semibold text-white disabled:opacity-60"
+                style={{
+                  borderRadius: 18,
+                  background: 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)',
+                  boxShadow: isPending ? 'none' : '0 4px 28px rgba(236,72,153,0.28)',
+                }}
               >
                 <AnimatePresence mode="wait">
                   {isPending ? (
                     <motion.span
                       key="pending"
-                      className="flex items-center gap-2"
-                      initial={{ opacity: 0, scale: 0.8 }}
+                      className="flex items-center justify-center gap-2"
+                      initial={{ opacity: 0, scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.15 }}
+                      exit={{ opacity: 0, scale: 0.85 }}
+                      transition={{ duration: 0.14 }}
                     >
                       <Loader2 size={15} className="animate-spin" />
                       Salvando...
@@ -144,11 +213,11 @@ export function EditWatchItemModal({ item, onClose }: Props) {
                   ) : (
                     <motion.span
                       key="idle"
-                      className="flex items-center gap-2"
-                      initial={{ opacity: 0, y: 4 }}
+                      className="flex items-center justify-center gap-2"
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.14 }}
                     >
                       <Check size={15} />
                       Salvar alterações
@@ -161,9 +230,9 @@ export function EditWatchItemModal({ item, onClose }: Props) {
                   <motion.div
                     className="pointer-events-none absolute inset-0"
                     animate={{ backgroundPositionX: ['-200%', '300%'] }}
-                    transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.5, ease: 'easeInOut' }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' as const }}
                     style={{
-                      background: 'linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.11) 53%, transparent 68%)',
+                      background: 'linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.13) 53%, transparent 68%)',
                       backgroundSize: '200% 100%',
                     }}
                   />
@@ -173,6 +242,7 @@ export function EditWatchItemModal({ item, onClose }: Props) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
