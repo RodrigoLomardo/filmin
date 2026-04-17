@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Plus, Heart, Shuffle } from 'lucide-react';
+import { Plus, Heart, Shuffle, BarChart2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
@@ -67,6 +67,7 @@ export default function HomePage() {
     groupTipo === 'duo'
       ? { label: 'Modo Match', href: '/match', icon: Heart }
       : { label: 'Escolha Rápida', href: '/escolha-rapida', icon: Shuffle },
+    { label: 'Retrospectiva', href: '/retrospectiva', icon: BarChart2 },
     { label: 'Novo item', href: '/cadastro', icon: Plus },
   ];
 

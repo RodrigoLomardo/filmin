@@ -8,6 +8,7 @@ import { GroupsModule } from './modules/groups/groups.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { TemporadasModule } from './modules/temporadas/temporadas.module';
 import { WatchItemsModule } from './modules/watch-items/watch-items.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -27,6 +28,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
       inject: [ConfigService],
     }),
     WatchItemsModule,
+    StatsModule,
     TemporadasModule,
     GenerosModule,
     ProfilesModule,
