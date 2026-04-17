@@ -10,6 +10,7 @@ import { TemporadasModule } from './modules/temporadas/temporadas.module';
 import { WatchItemsModule } from './modules/watch-items/watch-items.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TmdbModule } from './modules/tmdb/tmdb.module';
+import { BooksModule } from './modules/books/books.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -31,6 +32,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     WatchItemsModule,
     StatsModule,
     TmdbModule,
+    BooksModule,
     TemporadasModule,
     GenerosModule,
     ProfilesModule,

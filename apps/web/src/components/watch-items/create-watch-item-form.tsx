@@ -24,7 +24,9 @@ import { getTmdbById } from '@/lib/api/tmdb';
 import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { TmdbTitleInput } from '@/components/tmdb/tmdb-title-input';
+import { BooksTitleInput } from '@/components/books/books-title-input';
 import type { TmdbResult } from '@/types/tmdb';
+import type { BookResult } from '@/types/book';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -396,11 +398,6 @@ export function CreateWatchItemForm() {
       queryClient.invalidateQueries({ queryKey: ['watch-items'] });
       setErrorMessage('');
 
-      if (createdItem.tipo === 'serie') {
-        router.push(`/series/${createdItem.id}/temporadas`);
-        return;
-      }
-
       router.push('/');
     },
     onError: (error: Error) => {
@@ -452,6 +449,13 @@ export function CreateWatchItemForm() {
         // Sem detalhes — deixa temporadas em branco
       }
     }
+  }
+
+  function fillFromBook(result: BookResult) {
+    setTitulo(result.titulo);
+    setTituloOriginal('');
+    if (result.anoPublicacao) setAnoLancamento(String(result.anoPublicacao));
+    if (result.imagemUrl) setPosterUrl(result.imagemUrl);
   }
 
   function toggleGenero(id: string) {
@@ -584,13 +588,22 @@ export function CreateWatchItemForm() {
         <motion.section custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
           <SectionLabel>Identificação</SectionLabel>
           <div className="space-y-3">
-            <TmdbTitleInput
-              tipo={tipo}
-              value={titulo}
-              onChange={setTitulo}
-              onSelect={fillFromTmdb}
-              required
-            />
+            {tipo === 'livro' ? (
+              <BooksTitleInput
+                value={titulo}
+                onChange={setTitulo}
+                onSelect={fillFromBook}
+                required
+              />
+            ) : (
+              <TmdbTitleInput
+                tipo={tipo}
+                value={titulo}
+                onChange={setTitulo}
+                onSelect={fillFromTmdb}
+                required
+              />
+            )}
             <FloatInput
               label="Ano de lançamento"
               value={anoLancamento}
