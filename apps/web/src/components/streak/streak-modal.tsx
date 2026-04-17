@@ -51,10 +51,10 @@ function ConfirmReset({
   return (
     <motion.div
       className="flex flex-col gap-3"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="rounded-2xl bg-amber-950/30 px-4 py-3.5 ring-1 ring-amber-500/20">
         <p className="text-sm font-semibold text-amber-400">Reset obrigatório</p>
@@ -82,10 +82,10 @@ function PainelTipo({ tipoAtual, onSelect }: { tipoAtual: StreakTipo; onSelect: 
   return (
     <motion.div
       className="flex flex-col gap-2"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
       {TIPOS.map((t, i) => {
         const isAtual = t.value === tipoAtual;
@@ -127,10 +127,10 @@ function PainelVisuais({ sequenciaAtual }: { sequenciaAtual: number }) {
   return (
     <motion.div
       className="flex flex-col gap-1.5"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
       {FIRE_TIERS.map((tier, i) => {
         const isAtual =
@@ -314,15 +314,17 @@ export function StreakModal({ open, onClose, onHelp, streak }: StreakModalProps)
                 </div>
 
                 {/* Painel content */}
-                <AnimatePresence mode="wait" initial={false}>
-                  {tipoSelecionado ? (
-                    <ConfirmReset key="confirm" tipoSelecionado={tipoSelecionado} onConfirm={handleConfirm} onCancel={() => setTipoSelecionado(null)} isPending={isPending} />
-                  ) : painel === 'tipo' ? (
-                    <PainelTipo key="tipo" tipoAtual={streak.tipo} onSelect={setTipoSelecionado} />
-                  ) : painel === 'visuais' ? (
-                    <PainelVisuais key="visuais" sequenciaAtual={streak.sequenciaAtual} />
-                  ) : null}
-                </AnimatePresence>
+                <div className="overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {tipoSelecionado ? (
+                      <ConfirmReset key="confirm" tipoSelecionado={tipoSelecionado} onConfirm={handleConfirm} onCancel={() => setTipoSelecionado(null)} isPending={isPending} />
+                    ) : painel === 'tipo' ? (
+                      <PainelTipo key="tipo" tipoAtual={streak.tipo} onSelect={setTipoSelecionado} />
+                    ) : painel === 'visuais' ? (
+                      <PainelVisuais key="visuais" sequenciaAtual={streak.sequenciaAtual} />
+                    ) : null}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </motion.div>

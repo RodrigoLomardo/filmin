@@ -41,6 +41,7 @@ export default function HomePage() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
+  const [streakModalOpen, setStreakModalOpen] = useState(false);
   const autoShownRef = useRef(false);
 
   const pendingItems = usePendingRatings();
@@ -150,7 +151,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex items-center gap-3 pt-1">
-                <StreakDisplay />
+                <StreakDisplay onModalOpenChange={setStreakModalOpen} />
                 <div className="h-5 w-px bg-zinc-800" />
                 <PendingNotificationButton
                   count={pendingItems.length}
@@ -164,7 +165,15 @@ export default function HomePage() {
             <WatchItemsDashboard />
 
             {/* ── FAB Menu ── */}
-            <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+            <AnimatePresence>
+            {!streakModalOpen && (
+            <motion.div
+              className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.18, ease: 'easeInOut' }}
+            >
               {/* Backdrop */}
               <AnimatePresence>
                 {menuAberto && (
@@ -225,7 +234,9 @@ export default function HomePage() {
                   <Plus size={24} />
                 </motion.div>
               </motion.button>
-            </div>
+            </motion.div>
+            )}
+            </AnimatePresence>
           </motion.main>
         )}
       </AnimatePresence>
