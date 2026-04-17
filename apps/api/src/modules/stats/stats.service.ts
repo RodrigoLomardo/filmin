@@ -24,7 +24,11 @@ export class StatsService {
       .andWhere('wi.status = :status', { status: WatchItemStatus.ASSISTIDO });
 
     if (startDate) {
-      qb.andWhere('wi.dataAssistida >= :startDate', { startDate: startDate.toISOString().slice(0, 10) });
+      // Itens sem dataAssistida usam updatedAt como proxy (quando foram marcados como assistido)
+      qb.andWhere(
+        '(wi.dataAssistida >= :startDate OR (wi.dataAssistida IS NULL AND wi.updatedAt >= :startDate))',
+        { startDate: startDate.toISOString().slice(0, 10) },
+      );
     }
 
     const items = await qb.getMany();
