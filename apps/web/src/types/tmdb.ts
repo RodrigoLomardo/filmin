@@ -6,4 +6,5 @@ export interface TmdbResult {
   posterUrl: string | null;
   overview: string | null;
   tipo: 'filme' | 'serie';
+  totalTemporadas?: number | null;
 }

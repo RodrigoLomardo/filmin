@@ -20,9 +20,10 @@ import {
 import { getGeneros } from '@/lib/api/generos';
 import { createWatchItem } from '@/lib/api/watch-items';
 import { createTemporada } from '@/lib/api/temporadas';
+import { getTmdbById } from '@/lib/api/tmdb';
 import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
-import { TmdbSearch } from '@/components/tmdb/tmdb-search';
+import { TmdbTitleInput } from '@/components/tmdb/tmdb-title-input';
 import type { TmdbResult } from '@/types/tmdb';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -430,11 +431,27 @@ export function CreateWatchItemForm() {
     [tipo, status],
   );
 
-  function fillFromTmdb(result: TmdbResult) {
+  async function fillFromTmdb(result: TmdbResult) {
     setTitulo(result.titulo);
     setTituloOriginal(result.tituloOriginal);
     if (result.anoLancamento) setAnoLancamento(String(result.anoLancamento));
     if (result.posterUrl) setPosterUrl(result.posterUrl);
+
+    if (result.tipo === 'serie') {
+      try {
+        const detail = await getTmdbById(result.tmdbId, 'serie');
+        const count = detail.totalTemporadas ?? 1;
+        setTemporadas(
+          Array.from({ length: count }, (_, i) => ({
+            numero: String(i + 1),
+            notaDele: '',
+            notaDela: '',
+          })),
+        );
+      } catch {
+        // Sem detalhes — deixa temporadas em branco
+      }
+    }
   }
 
   function toggleGenero(id: string) {
@@ -567,21 +584,11 @@ export function CreateWatchItemForm() {
         <motion.section custom={2} initial="hidden" animate="visible" variants={sectionVariants}>
           <SectionLabel>Identificação</SectionLabel>
           <div className="space-y-3">
-            {/* TMDB autocomplete — apenas para filme e série */}
-            {tipo !== 'livro' && (
-              <div>
-                <TmdbSearch tipo={tipo} onSelect={fillFromTmdb} />
-                {titulo && (
-                  <p className="mt-1.5 px-1 text-[10px] text-zinc-600">
-                    Campos preenchidos automaticamente. Edite se necessário.
-                  </p>
-                )}
-              </div>
-            )}
-            <FloatInput
-              label="Título"
+            <TmdbTitleInput
+              tipo={tipo}
               value={titulo}
               onChange={setTitulo}
+              onSelect={fillFromTmdb}
               required
             />
             <FloatInput

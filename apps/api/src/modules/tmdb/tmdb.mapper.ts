@@ -29,5 +29,6 @@ export function mapTv(raw: TmdbTvRaw): TmdbSearchResult {
     posterUrl: raw.poster_path ? `${POSTER_BASE}${raw.poster_path}` : null,
     overview: raw.overview ?? null,
     tipo: 'serie',
+    totalTemporadas: raw.number_of_seasons ?? null,
   };
 }

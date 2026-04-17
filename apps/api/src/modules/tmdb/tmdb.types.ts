@@ -14,6 +14,7 @@ export interface TmdbTvRaw {
   first_air_date?: string;
   poster_path?: string | null;
   overview?: string;
+  number_of_seasons?: number;
 }
 
 export interface TmdbSearchResult {
@@ -24,4 +25,5 @@ export interface TmdbSearchResult {
   posterUrl: string | null;
   overview: string | null;
   tipo: 'filme' | 'serie';
+  totalTemporadas?: number | null;
 }
