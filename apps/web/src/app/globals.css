@@ -68,3 +68,8 @@ a {
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
+
+/* Mobile safe area inset support */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1.5rem);
+}

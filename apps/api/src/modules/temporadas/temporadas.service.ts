@@ -11,6 +11,7 @@ import { Temporada } from './entities/temporada.entity';
 import { WatchItem } from '../watch-items/entities/watch-item.entity';
 import { CreateTemporadaDto } from './dto/create-temporada.dto';
 import { UpdateTemporadaDto } from './dto/update-temporada.dto';
+import { StreakService } from '../streak/streak.service';
 
 @Injectable()
 export class TemporadasService {
@@ -20,6 +21,8 @@ export class TemporadasService {
 
     @InjectRepository(WatchItem)
     private readonly watchItemRepository: Repository<WatchItem>,
+
+    private readonly streakService: StreakService,
   ) { }
 
   async create(createTemporadaDto: CreateTemporadaDto, groupId: string, groupTipo: GroupTipo | null = null) {
@@ -79,6 +82,8 @@ export class TemporadasService {
     const savedTemporada = await this.temporadaRepository.save(temporada);
 
     await this.recalculateNotaGeralSerie(watchItem.id);
+
+    void this.streakService.registerActivity(groupId);
 
     return await this.temporadaRepository.findOne({
       where: { id: savedTemporada.id },

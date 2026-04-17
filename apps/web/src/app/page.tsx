@@ -17,6 +17,7 @@ import {
 } from '@/components/watch-items/pending-rating-notification';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { usePendingRatings } from '@/lib/hooks/use-pending-ratings';
+import { StreakDisplay } from '@/components/streak/streak-display';
 
 
 export default function HomePage() {
@@ -148,7 +149,9 @@ export default function HomePage() {
                 </motion.p>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-3 pt-1">
+                <StreakDisplay />
+                <div className="h-5 w-px bg-zinc-800" />
                 <PendingNotificationButton
                   count={pendingItems.length}
                   onClick={handleBellClick}
