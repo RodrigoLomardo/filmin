@@ -536,11 +536,30 @@ function SorteioMatchScreen({
     spinningRef.current = false;
   }, [matches, cardAnim, screenAnim]);
 
+  // iOS permission
+  const [needsPermission, setNeedsPermission] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+
+  useEffect(() => {
+    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    setNeedsPermission(typeof DME.requestPermission === 'function');
+  }, []);
+
+  async function requestMotionPermission() {
+    const DME = DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> };
+    const result = await DME.requestPermission();
+    if (result === 'granted') setPermissionGranted(true);
+  }
+
   // Mobile shake detection
   const shakeRef = useRef({ lastX: 0, lastY: 0, lastZ: 0, lastTime: 0, count: 0, timer: 0 as unknown as ReturnType<typeof setTimeout> });
 
   useEffect(() => {
     if (phase !== 'idle' || !isMobile) return;
+
+    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    const isIOS = typeof DME.requestPermission === 'function';
+    if (isIOS && !permissionGranted) return;
 
     function onMotion(e: DeviceMotionEvent) {
       const acc = e.accelerationIncludingGravity;
@@ -569,28 +588,9 @@ function SorteioMatchScreen({
       }
     }
 
-    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
-    if (typeof DME.requestPermission !== 'function') {
-      window.addEventListener('devicemotion', onMotion);
-    }
-
+    window.addEventListener('devicemotion', onMotion);
     return () => window.removeEventListener('devicemotion', onMotion);
-  }, [phase, isMobile, runSpin]);
-
-  // iOS permission
-  const [needsPermission, setNeedsPermission] = useState(false);
-  const [permissionGranted, setPermissionGranted] = useState(false);
-
-  useEffect(() => {
-    const DME = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
-    setNeedsPermission(typeof DME.requestPermission === 'function');
-  }, []);
-
-  async function requestMotionPermission() {
-    const DME = DeviceMotionEvent as unknown as { requestPermission: () => Promise<string> };
-    const result = await DME.requestPermission();
-    if (result === 'granted') setPermissionGranted(true);
-  }
+  }, [phase, isMobile, runSpin, permissionGranted]);
 
   // Desktop hold button
   const [holding, setHolding] = useState(false);
