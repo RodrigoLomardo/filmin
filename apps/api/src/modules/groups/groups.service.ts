@@ -14,6 +14,7 @@ import { GroupMember } from './entities/group-member.entity';
 import { WatchItem } from '../watch-items/entities/watch-item.entity';
 import { Temporada } from '../temporadas/entities/temporada.entity';
 import type { GroupMeResponse } from './interfaces/group-me-response.interface';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class GroupsService {
@@ -28,6 +29,7 @@ export class GroupsService {
     private readonly watchItemRepo: Repository<WatchItem>,
 
     private readonly dataSource: DataSource,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -99,7 +101,7 @@ export class GroupsService {
   async joinByInviteCode(profileId: string, inviteCode: string): Promise<GroupMeResponse> {
     const group = await this.groupsRepo.findOne({
       where: { inviteCode: ILike(inviteCode) },
-      relations: { members: true },
+      relations: { members: { profile: true } },
     });
 
     if (!group) throw new NotFoundException('Convite inválido ou não encontrado.');
@@ -109,9 +111,27 @@ export class GroupsService {
     await this.assertHasNoDuoGroup(profileId);
     const soloGroup = await this.ensureSoloGroup(profileId);
 
+    // Carrega o perfil de quem está entrando para incluir no evento
+    const joiningMemberMembers = await this.groupMembersRepo.find({
+      where: { profileId },
+      relations: { profile: true },
+    });
+    const joiningProfile = joiningMemberMembers[0]?.profile;
+
     await this.groupMembersRepo.save(
       this.groupMembersRepo.create({ groupId: group.id, profileId }),
     );
+
+    // Notifica os membros existentes do grupo
+    const joinerName = [joiningProfile?.firstName, joiningProfile?.lastName]
+      .filter(Boolean).join(' ') || joiningProfile?.email || 'Alguém';
+
+    for (const existingMember of group.members) {
+      this.notificationsService.emit(existingMember.profileId, 'member_joined', {
+        memberName: joinerName,
+        memberEmail: joiningProfile?.email ?? null,
+      });
+    }
 
     return this.buildGroupMeResponse(group.id, soloGroup.id);
   }
@@ -122,8 +142,12 @@ export class GroupsService {
    * Operação transacional — falha total em caso de erro.
    */
   async leaveDuo(profileId: string, duoGroupId: string, soloGroupId: string): Promise<void> {
-    const members = await this.groupMembersRepo.find({ where: { groupId: duoGroupId } });
+    const members = await this.groupMembersRepo.find({
+      where: { groupId: duoGroupId },
+      relations: { profile: true },
+    });
     const otherMember = members.find((m) => m.profileId !== profileId);
+    const leavingMember = members.find((m) => m.profileId === profileId);
 
     // Garante que o outro membro tem grupo solo
     let otherSoloGroupId: string | null = null;
@@ -137,6 +161,10 @@ export class GroupsService {
       where: { groupId: duoGroupId },
       relations: { generos: true, temporadas: true },
     });
+
+    // Prepara nome de quem está saindo para incluir na notificação
+    const leavingName = [leavingMember?.profile?.firstName, leavingMember?.profile?.lastName]
+      .filter(Boolean).join(' ') || leavingMember?.profile?.email || 'Seu parceiro';
 
     try {
       await this.dataSource.transaction(async (manager) => {
@@ -159,6 +187,13 @@ export class GroupsService {
       throw new InternalServerErrorException(
         'Falha ao sair do grupo. Nenhuma alteração foi aplicada.',
       );
+    }
+
+    // Notifica o membro que ficou (após commit da transação)
+    if (otherMember) {
+      this.notificationsService.emit(otherMember.profileId, 'duo_dissolved', {
+        partnerName: leavingName,
+      });
     }
   }
 

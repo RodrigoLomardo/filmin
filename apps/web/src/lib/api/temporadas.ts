@@ -5,7 +5,7 @@ export type CreateTemporadaPayload = {
   watchItemId: string;
   numero: number;
   notaDele: number;
-  notaDela: number;
+  notaDela?: number;
 };
 
 export type UpdateTemporadaPayload = {
