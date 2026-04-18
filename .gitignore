@@ -16,3 +16,4 @@ docs/features
 docs/
 context.md
 supabase/*
+.claude/*
