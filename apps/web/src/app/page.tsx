@@ -17,6 +17,9 @@ import {
 } from '@/components/watch-items/pending-rating-notification';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { usePendingRatings } from '@/lib/hooks/use-pending-ratings';
+import { useNotifications } from '@/lib/hooks/use-notifications';
+import { DuoDissolvedModal } from '@/components/notifications/duo-dissolved-modal';
+import { MemberJoinedToast } from '@/components/notifications/member-joined-toast';
 import { StreakDisplay } from '@/components/streak/streak-display';
 
 
@@ -45,6 +48,7 @@ export default function HomePage() {
   const autoShownRef = useRef(false);
 
   const pendingItems = usePendingRatings();
+  const { notification, clearNotification } = useNotifications();
 
   useEffect(() => {
     if (pendingItems.length === 0) return;
@@ -80,6 +84,23 @@ export default function HomePage() {
   return (
     <>
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <DuoDissolvedModal
+        open={notification?.type === 'duo_dissolved'}
+        partnerName={
+          notification?.type === 'duo_dissolved' ? notification.data.partnerName : ''
+        }
+        onClose={clearNotification}
+      />
+
+      <MemberJoinedToast
+        open={notification?.type === 'member_joined'}
+        memberName={
+          notification?.type === 'member_joined' ? notification.data.memberName : ''
+        }
+        onClose={clearNotification}
+      />
+
       <PendingRatingNotificationModal
         items={pendingItems}
         open={pendingOpen}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Film, Tv, BookOpen, Check, Loader2 } from 'lucide-react';
-import { WatchItem } from '@/types/watch-item';
+import { GalleryType, WatchItem } from '@/types/watch-item';
 import { EditWatchItemForm } from './edit-watch-item-form';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -14,9 +14,9 @@ const TIPO_LABEL = { filme: 'Filme', serie: 'Série', livro: 'Livro' };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Props = { item: WatchItem | null; onClose: () => void };
+type Props = { item: WatchItem | null; gallery?: GalleryType; onClose: () => void };
 
-export function EditWatchItemModal({ item, onClose }: Props) {
+export function EditWatchItemModal({ item, gallery, onClose }: Props) {
   const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
@@ -172,6 +172,7 @@ export function EditWatchItemModal({ item, onClose }: Props) {
             >
               <EditWatchItemForm
                 item={item}
+                gallery={gallery}
                 onSuccess={onClose}
                 onPendingChange={setIsPending}
               />

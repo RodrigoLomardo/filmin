@@ -21,8 +21,9 @@ import { getGeneros } from '@/lib/api/generos';
 import { createWatchItem } from '@/lib/api/watch-items';
 import { createTemporada } from '@/lib/api/temporadas';
 import { getTmdbById } from '@/lib/api/tmdb';
-import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
-import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
+import { GalleryType, WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
+import { useGroup } from '@/lib/hooks/use-group';
+import { GallerySelector } from './gallery-selector';
 import { TmdbTitleInput } from '@/components/tmdb/tmdb-title-input';
 import { BooksTitleInput } from '@/components/books/books-title-input';
 import type { TmdbResult } from '@/types/tmdb';
@@ -348,7 +349,10 @@ function PosterInput({
 export function CreateWatchItemForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const groupTipo = useGroupTipo();
+  const { isDuo, hasSoloGallery } = useGroup();
+  const [gallery, setGallery] = useState<GalleryType>('duo');
+  // Solo quando usuário não é duo OU escolheu a galeria solo
+  const isSolo = !isDuo || gallery === 'solo';
 
   const [titulo, setTitulo] = useState('');
   const [tituloOriginal, setTituloOriginal] = useState('');
@@ -378,16 +382,14 @@ export function CreateWatchItemForm() {
       const createdItem = await createWatchItem(payload);
 
       if (createdItem.tipo === 'serie') {
-        const isDuo = groupTipo === 'duo';
         for (const t of temporadas) {
           if (!t.notaDele) continue;
-          if (isDuo && !t.notaDela) continue;
+          if (!isSolo && !t.notaDela) continue;
           await createTemporada({
             watchItemId: createdItem.id,
             numero: Number(t.numero),
             notaDele: Number(t.notaDele),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            notaDela: isDuo ? Number(t.notaDela) : (undefined as any),
+            notaDela: !isSolo ? Number(t.notaDela) : undefined,
           });
         }
       }
@@ -484,11 +486,12 @@ export function CreateWatchItemForm() {
       tipo,
       status,
       notaDele: shouldShowNotas && notaDele ? Number(notaDele) : undefined,
-      notaDela: shouldShowNotas && notaDela ? Number(notaDela) : undefined,
+      notaDela: shouldShowNotas && !isSolo && notaDela ? Number(notaDela) : undefined,
       dataAssistida: dataAssistida || undefined,
       observacoes: observacoes || undefined,
       posterUrl: posterUrl || undefined,
       generosIds,
+      gallery: isSolo ? 'solo' : 'duo',
     });
   }
 
@@ -512,6 +515,14 @@ export function CreateWatchItemForm() {
 
       {/* ── Form ── */}
       <form id="watch-item-form" onSubmit={handleSubmit} className="flex flex-col gap-8 px-5 pb-36 pt-7">
+
+        {/* Section 0 — Gallery selector (duo only) */}
+        {hasSoloGallery && (
+          <motion.section custom={-1} initial="hidden" animate="visible" variants={sectionVariants}>
+            <SectionLabel>Adicionar em</SectionLabel>
+            <GallerySelector value={gallery} onChange={setGallery} />
+          </motion.section>
+        )}
 
         {/* Section 1 — Tipo */}
         <motion.section
@@ -664,14 +675,14 @@ export function CreateWatchItemForm() {
 
                       {/* Note inputs */}
                       <div
-                        className={`grid gap-4 ${groupTipo === 'duo'
+                        className={`grid gap-4 ${!isSolo
                           ? 'grid-cols-1 sm:grid-cols-2'
                           : 'grid-cols-1'
                           }`}
                       >
                         <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                           <NoteCounter
-                            label={groupTipo === 'duo' ? 'Dele' : 'Nota'}
+                            label={!isSolo ? 'Dele' : 'Nota'}
                             value={t.notaDele}
                             onChange={(v) =>
                               updateTemporadaField(index, 'notaDele', v)
@@ -679,7 +690,7 @@ export function CreateWatchItemForm() {
                           />
                         </div>
 
-                        {groupTipo === 'duo' && (
+                        {!isSolo && (
                           <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                             <NoteCounter
                               label="Dela"
@@ -725,18 +736,17 @@ export function CreateWatchItemForm() {
               </SectionLabel>
 
               <div
-                className={`grid gap-4 ${groupTipo === 'duo' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
-                  }`}
+                className={`grid gap-4 ${!isSolo ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
               >
                 <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                   <NoteCounter
-                    label={groupTipo === 'duo' ? 'Dele' : 'Minha nota'}
+                    label={!isSolo ? 'Dele' : 'Minha nota'}
                     value={notaDele}
                     onChange={setNotaDele}
                   />
                 </div>
 
-                {groupTipo === 'duo' && (
+                {!isSolo && (
                   <div className="min-w-0 rounded-2xl border border-zinc-800/80 bg-zinc-900/70 p-4">
                     <NoteCounter
                       label="Dela"

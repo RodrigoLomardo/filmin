@@ -22,6 +22,13 @@ export type Group = {
   inviteCode: string | null;
   members: GroupMember[];
   createdAt: string;
+  /**
+   * ID do grupo solo pessoal do usuário.
+   * Para usuários solo-only: igual ao id do grupo.
+   * Para usuários duo: aponta para o grupo solo separado.
+   * null se o usuário ainda não tem grupo.
+   */
+  soloGroupId: string | null;
 };
 
 export async function getMyGroup(): Promise<Group | null> {
@@ -38,4 +45,8 @@ export async function createDuoGroup(): Promise<Group> {
 
 export async function joinGroupByInviteCode(inviteCode: string): Promise<Group> {
   return apiFetch<Group>(`/groups/join/${inviteCode}`, { method: 'POST' });
+}
+
+export async function leaveDuoGroup(): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/groups/leave-duo', { method: 'POST' });
 }

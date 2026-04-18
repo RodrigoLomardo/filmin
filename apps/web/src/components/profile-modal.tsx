@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock, Copy } from 'lucide-react';
+import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock, Copy, DoorOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMyGroup, type GroupMember } from '@/lib/api/groups';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getMyGroup, leaveDuoGroup, type GroupMember } from '@/lib/api/groups';
 import {
   getProfile,
   updateProfile,
@@ -190,6 +190,22 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Leave duo state
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const leaveMutation = useMutation({
+    mutationFn: leaveDuoGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group'] });
+      queryClient.invalidateQueries({ queryKey: ['watch-items'] });
+      setConfirmLeave(false);
+      onClose();
+    },
+    onError: (err: Error) => {
+      setSaveError(err.message);
+      setConfirmLeave(false);
+    },
+  });
+
   // Profile form fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -239,7 +255,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
 
   // Reset editing state when modal closes
   useEffect(() => {
-    if (!open) { setEditing(null); setSaveError(null); }
+    if (!open) { setEditing(null); setSaveError(null); setConfirmLeave(false); }
   }, [open]);
 
   // ---------------------------------------------------------------------------
@@ -574,29 +590,85 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
                 <div className="h-px bg-[var(--border)] my-1" />
 
                 {/* ── Section: Grupo ── */}
-                {group?.tipo === 'duo' && group.inviteCode && (
+                {group?.tipo === 'duo' && (
                   <>
                     <SectionHeader label="Grupo" />
-                    <div className="px-1 pb-1">
-                      <p className="mb-1.5 text-[10px] text-zinc-600">Código de convite</p>
-                      <div className="flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 ring-1 ring-zinc-800">
-                        <span className="flex-1 font-mono text-sm tracking-[0.22em] text-pink-400">
-                          {group.inviteCode}
-                        </span>
-                        <button
-                          onClick={handleCopyCode}
-                          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
-                        >
-                          {codeCopied
-                            ? <Check size={12} className="text-green-400" />
-                            : <Copy size={12} />}
-                          {codeCopied ? 'Copiado!' : 'Copiar'}
-                        </button>
+
+                    {group.inviteCode && (
+                      <div className="px-1 pb-1">
+                        <p className="mb-1.5 text-[10px] text-zinc-600">Código de convite</p>
+                        <div className="flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 ring-1 ring-zinc-800">
+                          <span className="flex-1 font-mono text-sm tracking-[0.22em] text-pink-400">
+                            {group.inviteCode}
+                          </span>
+                          <button
+                            onClick={handleCopyCode}
+                            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
+                          >
+                            {codeCopied
+                              ? <Check size={12} className="text-green-400" />
+                              : <Copy size={12} />}
+                            {codeCopied ? 'Copiado!' : 'Copiar'}
+                          </button>
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-zinc-700">
+                          Compartilhe com sua dupla para ela entrar no grupo.
+                        </p>
                       </div>
-                      <p className="mt-1.5 text-[10px] text-zinc-700">
-                        Compartilhe com sua dupla para ela entrar no grupo.
-                      </p>
-                    </div>
+                    )}
+
+                    {/* Leave duo */}
+                    <AnimatePresence mode="wait">
+                      {confirmLeave ? (
+                        <motion.div
+                          key="confirm"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.18 }}
+                          className="mx-1 mb-1 rounded-xl bg-red-500/8 px-3 py-3 ring-1 ring-red-500/20"
+                        >
+                          <p className="mb-2 text-xs text-red-300 leading-snug">
+                            Tem certeza? Os itens do duo serão copiados para sua galeria solo. Essa ação não pode ser desfeita.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setConfirmLeave(false)}
+                              disabled={leaveMutation.isPending}
+                              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-700 py-1.5 text-xs text-zinc-400 transition hover:border-zinc-600 disabled:opacity-50"
+                            >
+                              <X size={11} /> Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => leaveMutation.mutate()}
+                              disabled={leaveMutation.isPending}
+                              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-500/80 py-1.5 text-xs font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+                            >
+                              {leaveMutation.isPending
+                                ? <Loader2 size={11} className="animate-spin" />
+                                : <Check size={11} />}
+                              {leaveMutation.isPending ? 'Saindo...' : 'Confirmar'}
+                            </button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.button
+                          key="leave-btn"
+                          type="button"
+                          onClick={() => setConfirmLeave(true)}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 transition hover:bg-red-500/8 hover:text-red-400"
+                        >
+                          <DoorOpen size={15} />
+                          Sair do grupo duo
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
+
                     <div className="h-px bg-[var(--border)] my-1" />
                   </>
                 )}

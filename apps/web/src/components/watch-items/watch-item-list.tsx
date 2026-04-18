@@ -3,9 +3,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { getWatchItems } from '@/lib/api/watch-items';
-import { WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
+import { GalleryType, WatchItemStatus, WatchItemTipo } from '@/types/watch-item';
 import { WatchItemCard } from './watch-item-card';
-import { Film } from 'lucide-react';
+import { Film, User } from 'lucide-react';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -13,17 +13,16 @@ type WatchItemsListProps = {
   status?: WatchItemStatus;
   tipo?: WatchItemTipo | 'todos';
   direction?: number;
+  gallery?: GalleryType;
 };
 
 // ─── Variantes de slide direcional ───────────────────────────────────────────
 
 const slideVariants = {
-  // Entrada: vem da direita (dir>0) ou da esquerda (dir<0), fade simples se dir=0
   enter: (dir: number) => ({
     x: dir > 0 ? '100%' : dir < 0 ? '-100%' : 0,
     opacity: dir === 0 ? 0 : 1,
   }),
-  // Spring no enter — flui naturalmente para o centro
   center: {
     x: 0,
     opacity: 1,
@@ -32,7 +31,6 @@ const slideVariants = {
       opacity: { duration: 0.22, ease: 'easeOut' as const },
     },
   },
-  // Saída rápida com easeIn (parallax parcial)
   exit: (dir: number) => ({
     x: dir > 0 ? '-38%' : dir < 0 ? '38%' : 0,
     opacity: 0,
@@ -66,11 +64,50 @@ function SkeletonCard() {
   );
 }
 
+// ─── Empty state ─────────────────────────────────────────────────────────────
+
+function EmptyState({ direction, gallery }: { direction: number; gallery?: GalleryType }) {
+  const isSolo = gallery === 'solo';
+
+  return (
+    <AnimatePresence custom={direction} mode="popLayout">
+      <motion.div
+        key={`empty-solo-${isSolo}`}
+        custom={direction}
+        variants={slideVariants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        className="flex flex-col items-center gap-3 py-14 text-center"
+        style={{ willChange: 'transform, opacity' }}
+      >
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-zinc-800">
+          {isSolo ? (
+            <User size={20} className="text-zinc-600" />
+          ) : (
+            <Film size={20} className="text-zinc-600" />
+          )}
+        </div>
+        <p className="text-sm text-zinc-600">
+          {isSolo
+            ? 'Sua galeria solo está vazia. Adicione itens aqui!'
+            : 'Nenhum item encontrado.'}
+        </p>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 // ─── Componente ──────────────────────────────────────────────────────────────
 
-export function WatchItemsList({ status, tipo = 'todos', direction = 0 }: WatchItemsListProps) {
+export function WatchItemsList({
+  status,
+  tipo = 'todos',
+  direction = 0,
+  gallery,
+}: WatchItemsListProps) {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['watch-items', status, tipo],
+    queryKey: ['watch-items', status, tipo, gallery],
     queryFn: () =>
       getWatchItems({
         page: 1,
@@ -78,6 +115,7 @@ export function WatchItemsList({ status, tipo = 'todos', direction = 0 }: WatchI
         status,
         tipo: tipo === 'todos' ? undefined : tipo,
         sortBy: 'createdAt',
+        gallery,
       }),
   });
 
@@ -101,31 +139,13 @@ export function WatchItemsList({ status, tipo = 'todos', direction = 0 }: WatchI
   }
 
   if (!data?.data.length) {
-    return (
-      <AnimatePresence custom={direction} mode="popLayout">
-        <motion.div
-          key={`empty-${status}-${tipo}`}
-          custom={direction}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          className="flex flex-col items-center gap-3 py-14 text-center"
-          style={{ willChange: 'transform, opacity' }}
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-zinc-800">
-            <Film size={20} className="text-zinc-600" />
-          </div>
-          <p className="text-sm text-zinc-600">Nenhum item encontrado.</p>
-        </motion.div>
-      </AnimatePresence>
-    );
+    return <EmptyState direction={direction} gallery={gallery} />;
   }
 
   return (
     <AnimatePresence custom={direction} mode="popLayout">
       <motion.div
-        key={`${status}-${tipo}`}
+        key={`${status}-${tipo}-${gallery}`}
         custom={direction}
         variants={slideVariants}
         initial="enter"
@@ -135,7 +155,7 @@ export function WatchItemsList({ status, tipo = 'todos', direction = 0 }: WatchI
         style={{ willChange: 'transform, opacity' }}
       >
         {data.data.map((item, index) => (
-          <WatchItemCard key={item.id} item={item} index={index} />
+          <WatchItemCard key={item.id} item={item} index={index} gallery={gallery} />
         ))}
       </motion.div>
     </AnimatePresence>

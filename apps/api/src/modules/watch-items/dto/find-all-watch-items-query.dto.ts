@@ -30,11 +30,18 @@ export class FindAllWatchItemsQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsOptional()
   @IsIn(['titulo', 'notaDele', 'notaDela', 'notaGeral', 'dataAssistida', 'createdAt', 'anoLancamento'])
   sortBy?: 'titulo' | 'notaDele' | 'notaDela' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento' = 'createdAt';
 
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
+
+  /**
+   * Galeria alvo: 'duo' (padrão) ou 'solo'.
+   * Para usuários solo-only, ambos apontam para o mesmo grupo.
+   */
+  @IsOptional()
+  @IsIn(['duo', 'solo'])
+  gallery?: 'duo' | 'solo';
 }

@@ -46,6 +46,8 @@ export type WatchItemsResponse = {
   };
 };
 
+export type GalleryType = 'duo' | 'solo';
+
 export type CreateWatchItemPayload = {
   titulo: string;
   tituloOriginal?: string;
@@ -59,4 +61,5 @@ export type CreateWatchItemPayload = {
   observacoes?: string;
   posterUrl?: string;
   generosIds: string[];
+  gallery?: GalleryType;
 };
