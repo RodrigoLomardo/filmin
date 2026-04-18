@@ -252,6 +252,23 @@ export class WatchItemsService {
       updateWatchItemDto.notaDele !== undefined || updateWatchItemDto.notaDela !== undefined;
 
     if (isChangingRatingFields && watchItem.ratingStatus != null) {
+      if (
+        watchItem.ratingStatus === RatingStatus.AWAITING_PARTNER &&
+        watchItem.pendingForProfileId === profileId &&
+        watchItem.firstRatingField != null
+      ) {
+        const pendingNota =
+          watchItem.firstRatingField === RatingField.DELE
+            ? updateWatchItemDto.notaDela
+            : updateWatchItemDto.notaDele;
+
+        if (pendingNota == null) {
+          throw new BadRequestException('Informe sua nota para concluir a avaliação dupla.');
+        }
+
+        return this.rate(id, { nota: pendingNota }, groupId, groupTipo, profileId);
+      }
+
       throw new BadRequestException(
         'Este item possui avaliação dupla ativa. Use PATCH /:id/rate para submeter a avaliação pendente.',
       );
