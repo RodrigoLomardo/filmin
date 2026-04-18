@@ -137,6 +137,10 @@ export class WatchItem {
   @Column({ name: 'group_id', type: 'uuid' })
   groupId: string;
 
+  @Index()
+  @Column({ name: 'origin_group_id', type: 'uuid', nullable: true })
+  originGroupId?: string | null;
+
   @ManyToOne(() => Group, (g) => g.watchItems, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'group_id' })
   group: Group;

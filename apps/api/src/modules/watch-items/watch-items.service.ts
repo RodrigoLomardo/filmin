@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Genero } from '../generos/entities/genero.entity';
 import { GroupMember } from '../groups/entities/group-member.entity';
 import { WatchItemStatus } from '../../common/enums/watch-item-status.enum';
@@ -32,7 +32,7 @@ export class WatchItemsService {
     private readonly groupMemberRepository: Repository<GroupMember>,
 
     private readonly streakService: StreakService,
-  ) { }
+  ) {}
 
   async create(
     createWatchItemDto: CreateWatchItemDto,
@@ -50,19 +50,22 @@ export class WatchItemsService {
       groupTipo,
     });
 
-    const isMidiaNota = createWatchItemDto.tipo === WatchItemTipo.FILME || createWatchItemDto.tipo === WatchItemTipo.LIVRO;
+    const isMidiaNota =
+      createWatchItemDto.tipo === WatchItemTipo.FILME ||
+      createWatchItemDto.tipo === WatchItemTipo.LIVRO;
     const isSolo = groupTipo === GroupTipo.SOLO;
 
-    const notaDele = isMidiaNota ? createWatchItemDto.notaDele ?? null : null;
-    const notaDela = isMidiaNota && !isSolo ? createWatchItemDto.notaDela ?? null : null;
+    const notaDele = isMidiaNota ? (createWatchItemDto.notaDele ?? null) : null;
+    const notaDela = isMidiaNota && !isSolo ? (createWatchItemDto.notaDela ?? null) : null;
 
-    const notaGeral = isMidiaNota && notaDele != null
-      ? isSolo
-        ? notaDele
-        : notaDela != null
-          ? this.calcularNotaGeralDuo(notaDele, notaDela)
-          : null
-      : null;
+    const notaGeral =
+      isMidiaNota && notaDele != null
+        ? isSolo
+          ? notaDele
+          : notaDela != null
+            ? this.calcularNotaGeralDuo(notaDele, notaDela)
+            : null
+        : null;
 
     const { ratingStatus, pendingForProfileId, firstRatingByProfileId, firstRatingField, lastRatingAt } =
       await this.resolveRatingStatus(groupId, groupTipo, notaDele, notaDela, profileId);
@@ -92,9 +95,7 @@ export class WatchItemsService {
     });
 
     const saved = await this.watchItemRepository.save(watchItem);
-
     void this.streakService.registerActivity(groupId);
-
     return saved;
   }
 
@@ -109,13 +110,8 @@ export class WatchItemsService {
       .leftJoinAndSelect('watchItem.temporadas', 'temporada')
       .where('watchItem.groupId = :groupId', { groupId });
 
-    if (query.tipo) {
-      qb.andWhere('watchItem.tipo = :tipo', { tipo: query.tipo });
-    }
-
-    if (query.status) {
-      qb.andWhere('watchItem.status = :status', { status: query.status });
-    }
+    if (query.tipo) qb.andWhere('watchItem.tipo = :tipo', { tipo: query.tipo });
+    if (query.status) qb.andWhere('watchItem.status = :status', { status: query.status });
 
     if (query.search) {
       qb.andWhere(
@@ -140,7 +136,6 @@ export class WatchItemsService {
     qb.orderBy(sortBy, sortOrder).skip(skip).take(limit);
 
     const [data, total] = await qb.getManyAndCount();
-
     return {
       data,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
@@ -167,9 +162,12 @@ export class WatchItemsService {
     });
   }
 
-  async findOne(id: string, groupId: string) {
+  /**
+   * Busca item pelo ID em qualquer grupo do usuário (duo + solo).
+   */
+  async findOne(id: string, groupIds: string[]) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id, groupId },
+      where: { id, groupId: In(groupIds) },
       relations: { generos: true, temporadas: true },
     });
 
@@ -191,15 +189,11 @@ export class WatchItemsService {
       throw new BadRequestException('Avaliação dupla só é aplicável em grupos Duo.');
     }
 
-    const watchItem = await this.watchItemRepository.findOne({
-      where: { id, groupId },
-    });
+    const watchItem = await this.watchItemRepository.findOne({ where: { id, groupId } });
+    if (!watchItem) throw new NotFoundException(`Watch item com id "${id}" não encontrado.`);
 
-    if (!watchItem) {
-      throw new NotFoundException(`Watch item com id "${id}" não encontrado.`);
-    }
-
-    const isMidiaNota = watchItem.tipo === WatchItemTipo.FILME || watchItem.tipo === WatchItemTipo.LIVRO;
+    const isMidiaNota =
+      watchItem.tipo === WatchItemTipo.FILME || watchItem.tipo === WatchItemTipo.LIVRO;
     if (!isMidiaNota) {
       throw new BadRequestException('Séries não suportam avaliação individual por nota.');
     }
@@ -213,10 +207,11 @@ export class WatchItemsService {
     }
 
     if (!watchItem.firstRatingField) {
-      throw new BadRequestException('Estado de avaliação inconsistente: slot da primeira avaliação não registrado.');
+      throw new BadRequestException(
+        'Estado de avaliação inconsistente: slot da primeira avaliação não registrado.',
+      );
     }
 
-    // Use the explicit first-rating slot to determine which field to protect and which to fill
     if (watchItem.firstRatingField === RatingField.DELE) {
       watchItem.notaDela = dto.nota;
     } else {
@@ -232,21 +227,35 @@ export class WatchItemsService {
     watchItem.lastRatingAt = new Date();
 
     const saved = await this.watchItemRepository.save(watchItem);
-
     void this.streakService.registerActivity(groupId);
-
     return saved;
   }
 
-  async update(id: string, updateWatchItemDto: UpdateWatchItemDto, groupId: string, groupTipo: GroupTipo | null, profileId: string) {
+  /**
+   * Atualiza item — detecta automaticamente se é solo ou duo pela posição no grupo.
+   */
+  async update(
+    id: string,
+    updateWatchItemDto: UpdateWatchItemDto,
+    groupIds: string[],
+    soloGroupId: string | null,
+    groupTipo: GroupTipo | null,
+    profileId: string,
+  ) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id, groupId },
+      where: { id, groupId: In(groupIds) },
       relations: { generos: true, temporadas: true },
     });
 
     if (!watchItem) {
       throw new NotFoundException(`Watch item com id "${id}" não encontrado.`);
     }
+
+    // Determina effectiveTipo com base em qual grupo o item pertence
+    const effectiveTipo =
+      soloGroupId && watchItem.groupId === soloGroupId && groupTipo === GroupTipo.DUO
+        ? GroupTipo.SOLO
+        : groupTipo;
 
     const isChangingRatingFields =
       updateWatchItemDto.notaDele !== undefined || updateWatchItemDto.notaDela !== undefined;
@@ -266,7 +275,7 @@ export class WatchItemsService {
           throw new BadRequestException('Informe sua nota para concluir a avaliação dupla.');
         }
 
-        return this.rate(id, { nota: pendingNota }, groupId, groupTipo, profileId);
+        return this.rate(id, { nota: pendingNota }, watchItem.groupId, effectiveTipo, profileId);
       }
 
       throw new BadRequestException(
@@ -276,10 +285,18 @@ export class WatchItemsService {
 
     const newTipo = updateWatchItemDto.tipo ?? watchItem.tipo;
     const newStatus = updateWatchItemDto.status ?? watchItem.status;
-    const newNotaDele = updateWatchItemDto.notaDele !== undefined ? updateWatchItemDto.notaDele : watchItem.notaDele;
-    const newNotaDela = updateWatchItemDto.notaDela !== undefined ? updateWatchItemDto.notaDela : watchItem.notaDela;
+    const newNotaDele =
+      updateWatchItemDto.notaDele !== undefined ? updateWatchItemDto.notaDele : watchItem.notaDele;
+    const newNotaDela =
+      updateWatchItemDto.notaDela !== undefined ? updateWatchItemDto.notaDela : watchItem.notaDela;
 
-    this.validateNotasRules({ tipo: newTipo, status: newStatus, notaDele: newNotaDele, notaDela: newNotaDela, groupTipo });
+    this.validateNotasRules({
+      tipo: newTipo,
+      status: newStatus,
+      notaDele: newNotaDele,
+      notaDela: newNotaDela,
+      groupTipo: effectiveTipo,
+    });
 
     if (updateWatchItemDto.generosIds) {
       const generos = await this.validateAndGetGeneros(updateWatchItemDto.generosIds);
@@ -291,24 +308,37 @@ export class WatchItemsService {
     watchItem.anoLancamento = updateWatchItemDto.anoLancamento ?? watchItem.anoLancamento;
     watchItem.tipo = newTipo;
     watchItem.status = newStatus;
-    watchItem.dataAssistida = updateWatchItemDto.dataAssistida !== undefined
-      ? updateWatchItemDto.dataAssistida ? new Date(updateWatchItemDto.dataAssistida) : null
-      : watchItem.dataAssistida;
+    watchItem.dataAssistida =
+      updateWatchItemDto.dataAssistida !== undefined
+        ? updateWatchItemDto.dataAssistida
+          ? new Date(updateWatchItemDto.dataAssistida)
+          : null
+        : watchItem.dataAssistida;
     watchItem.rewatchCount = updateWatchItemDto.rewatchCount ?? watchItem.rewatchCount;
-    watchItem.observacoes = updateWatchItemDto.observacoes !== undefined ? updateWatchItemDto.observacoes : watchItem.observacoes;
-    watchItem.posterUrl = updateWatchItemDto.posterUrl !== undefined ? updateWatchItemDto.posterUrl : watchItem.posterUrl;
+    watchItem.observacoes =
+      updateWatchItemDto.observacoes !== undefined
+        ? updateWatchItemDto.observacoes
+        : watchItem.observacoes;
+    watchItem.posterUrl =
+      updateWatchItemDto.posterUrl !== undefined
+        ? updateWatchItemDto.posterUrl
+        : watchItem.posterUrl;
 
-    const isMidiaNota = newTipo === WatchItemTipo.FILME || newTipo === WatchItemTipo.LIVRO;
-    const isSolo = groupTipo === GroupTipo.SOLO;
+    const isMidiaNota =
+      newTipo === WatchItemTipo.FILME || newTipo === WatchItemTipo.LIVRO;
+    const isSolo = effectiveTipo === GroupTipo.SOLO;
 
     if (isMidiaNota) {
       watchItem.notaDele = newNotaDele ?? null;
       watchItem.notaDela = isSolo ? null : (newNotaDela ?? null);
-      watchItem.notaGeral = newNotaDele != null
-        ? isSolo
-          ? newNotaDele
-          : newNotaDela != null ? this.calcularNotaGeralDuo(newNotaDele, newNotaDela) : null
-        : null;
+      watchItem.notaGeral =
+        newNotaDele != null
+          ? isSolo
+            ? newNotaDele
+            : newNotaDela != null
+              ? this.calcularNotaGeralDuo(newNotaDele, newNotaDela)
+              : null
+          : null;
     }
 
     if (newTipo === WatchItemTipo.SERIE) {
@@ -316,7 +346,6 @@ export class WatchItemsService {
       watchItem.notaDela = null;
     }
 
-    // Activate dual rating sync if notes are set for the first time in a DUO group
     const shouldApplySync =
       isMidiaNota &&
       !isSolo &&
@@ -325,8 +354,8 @@ export class WatchItemsService {
 
     if (shouldApplySync) {
       const sync = await this.resolveRatingStatus(
-        groupId,
-        groupTipo,
+        watchItem.groupId,
+        effectiveTipo,
         watchItem.notaDele as number | null,
         watchItem.notaDela as number | null,
         profileId,
@@ -341,9 +370,12 @@ export class WatchItemsService {
     return await this.watchItemRepository.save(watchItem);
   }
 
-  async remove(id: string, groupId: string) {
+  /**
+   * Remove item — busca em todos os grupos do usuário.
+   */
+  async remove(id: string, groupIds: string[]) {
     const watchItem = await this.watchItemRepository.findOne({
-      where: { id, groupId },
+      where: { id, groupId: In(groupIds) },
     });
 
     if (!watchItem) {
@@ -351,9 +383,10 @@ export class WatchItemsService {
     }
 
     await this.watchItemRepository.remove(watchItem);
-
     return { message: `Watch item com id "${id}" removido com sucesso.` };
   }
+
+  // ─── helpers privados ────────────────────────────────────────────────────────
 
   private async resolveRatingStatus(
     groupId: string,
@@ -368,15 +401,21 @@ export class WatchItemsService {
     firstRatingField: RatingField | null;
     lastRatingAt: Date | null;
   }> {
-    const empty = { ratingStatus: null, pendingForProfileId: null, firstRatingByProfileId: null, firstRatingField: null, lastRatingAt: null };
+    const empty = {
+      ratingStatus: null,
+      pendingForProfileId: null,
+      firstRatingByProfileId: null,
+      firstRatingField: null,
+      lastRatingAt: null,
+    };
 
     if (groupTipo !== GroupTipo.DUO) return empty;
 
     const hasAnyRating = notaDele != null || notaDela != null;
     if (!hasAnyRating) return empty;
 
-    // Determine which field the current user is filling
-    const firstRatingField: RatingField = notaDele != null ? RatingField.DELE : RatingField.DELA;
+    const firstRatingField: RatingField =
+      notaDele != null ? RatingField.DELE : RatingField.DELA;
 
     if (notaDele != null && notaDela != null) {
       return {
@@ -388,7 +427,6 @@ export class WatchItemsService {
       };
     }
 
-    // Only one note provided — find the other member
     const members = await this.groupMemberRepository.find({
       where: { groupId },
       order: { joinedAt: 'ASC' },
@@ -411,7 +449,6 @@ export class WatchItemsService {
 
   private async validateAndGetGeneros(generosIds: string[]) {
     const uniqueGeneroIds = [...new Set(generosIds)];
-
     const generos = await this.generoRepository.find({
       where: uniqueGeneroIds.map((id) => ({ id })),
     });
@@ -430,11 +467,11 @@ export class WatchItemsService {
     notaDela?: number | null;
     groupTipo: GroupTipo | null;
   }) {
-    const isMidiaNota = payload.tipo === WatchItemTipo.FILME || payload.tipo === WatchItemTipo.LIVRO;
+    const isMidiaNota =
+      payload.tipo === WatchItemTipo.FILME || payload.tipo === WatchItemTipo.LIVRO;
     if (!isMidiaNota || payload.status !== WatchItemStatus.ASSISTIDO) return;
 
     const hasAnyNota = payload.notaDele != null || payload.notaDela != null;
-
     if (!hasAnyNota) {
       throw new BadRequestException(
         'Filmes e livros com status "assistido" precisam de pelo menos uma nota.',

@@ -1,6 +1,7 @@
 import { apiFetch } from './client';
 import {
   CreateWatchItemPayload,
+  GalleryType,
   WatchItemsResponse,
   WatchItem,
   WatchItemStatus,
@@ -14,6 +15,7 @@ type GetWatchItemsParams = {
   status?: WatchItemStatus;
   search?: string;
   sortBy?: 'titulo' | 'notaDele' | 'notaDela' | 'notaGeral' | 'dataAssistida' | 'createdAt' | 'anoLancamento';
+  gallery?: GalleryType;
 };
 
 export async function getWatchItems(params: GetWatchItemsParams = {}) {

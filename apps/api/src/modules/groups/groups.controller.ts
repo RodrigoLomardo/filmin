@@ -1,7 +1,17 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import { GroupsService } from './groups.service';
 
 @ApiTags('groups')
@@ -10,54 +20,60 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   /**
-   * Retorna o grupo atual do usuário com membros e profiles.
-   * Retorna null se o usuário ainda não passou pelo onboarding.
-   * Usado pelo frontend para decidir qual tela exibir após o login.
+   * Retorna o grupo primário do usuário (duo quando em duo, solo quando solo-only).
+   * Inclui `soloGroupId` para roteamento da galeria solo.
    */
   @Get('me')
-  @ApiOperation({ summary: 'Retorna o grupo atual do usuário autenticado' })
+  @ApiOperation({ summary: 'Retorna o grupo atual do usuário autenticado com soloGroupId' })
   getMyGroup(@CurrentUser() user: AuthenticatedUser) {
     return this.groupsService.getMyGroup(user.profileId);
   }
 
-  /**
-   * Cria um grupo solo para o usuário.
-   * O usuário passa a ter acesso ao app e ver seus próprios watch items.
-   */
   @Post('solo')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Cria um grupo solo para o usuário autenticado' })
+  @ApiOperation({ summary: 'Cria um grupo solo para o usuário autenticado (onboarding)' })
   createSolo(@CurrentUser() user: AuthenticatedUser) {
     return this.groupsService.createSolo(user.profileId);
   }
 
-  /**
-   * Cria um grupo duo para o usuário, gerando um invite_code.
-   * O segundo membro pode entrar via POST /groups/join/:inviteCode.
-   */
   @Post('duo')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Cria um grupo duo com invite_code para o usuário autenticado' })
+  @ApiOperation({ summary: 'Cria um grupo duo com invite_code e garante grupo solo para o usuário' })
   createDuo(@CurrentUser() user: AuthenticatedUser) {
     return this.groupsService.createDuo(user.profileId);
   }
 
-  /**
-   * Entra em um grupo duo existente usando o invite_code.
-   * Acessível a usuários autenticados que ainda não pertencem a nenhum grupo.
-   * Regras:
-   *  - invite_code deve ser válido e pertencer a um grupo duo
-   *  - grupo não pode ter 2 membros já
-   *  - usuário não pode já ter um grupo
-   */
   @Post('join/:inviteCode')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Entra em um grupo duo via invite_code' })
+  @ApiOperation({ summary: 'Entra em um grupo duo via invite_code (mantém ou cria grupo solo)' })
   @ApiParam({ name: 'inviteCode', example: 'aB3dEfGhIjK' })
   joinByInviteCode(
     @CurrentUser() user: AuthenticatedUser,
     @Param('inviteCode') inviteCode: string,
   ) {
     return this.groupsService.joinByInviteCode(user.profileId, inviteCode);
+  }
+
+  /**
+   * Sai do grupo duo.
+   * Migra todos os itens compartilhados para a galeria solo de ambos os membros.
+   * Operação transacional — sem perda de histórico.
+   */
+  @Post('leave-duo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sai do grupo duo e migra itens compartilhados para galeria solo' })
+  async leaveDuo(@CurrentUser() user: AuthenticatedUser) {
+    if (!user.groupId || user.groupTipo !== GroupTipo.DUO) {
+      throw new BadRequestException('Você não está em um grupo duo.');
+    }
+
+    if (!user.soloGroupId) {
+      throw new ForbiddenException(
+        'Galeria solo não encontrada. Entre em contato com o suporte.',
+      );
+    }
+
+    await this.groupsService.leaveDuo(user.profileId, user.groupId, user.soloGroupId);
+    return { message: 'Você saiu do grupo duo. Seus itens foram preservados na galeria solo.' };
   }
 }

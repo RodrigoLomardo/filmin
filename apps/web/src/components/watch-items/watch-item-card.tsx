@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Film, Tv, BookOpen, Star, Clock } from 'lucide-react';
-import { WatchItem } from '@/types/watch-item';
+import { GalleryType, WatchItem } from '@/types/watch-item';
 import { EditWatchItemModal } from './edit-watch-item-modal';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { cn } from '@/lib/utils';
@@ -27,19 +27,28 @@ const TIPO_ICON = { filme: Film, serie: Tv, livro: BookOpen };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Props = { item: WatchItem; index: number };
+type Props = { item: WatchItem; index: number; gallery?: GalleryType };
 
-export function WatchItemCard({ item, index }: Props) {
+export function WatchItemCard({ item, index, gallery }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const groupTipo = useGroupTipo();
 
   const Icon = TIPO_ICON[item.tipo] ?? Film;
   const isFilmeOuLivro = item.tipo === 'filme' || item.tipo === 'livro';
+  const isSoloView = gallery === 'solo';
 
-  const rating =
-    isFilmeOuLivro
-      ? groupTipo === 'duo' ? item.notaGeral : item.notaDele
-      : item.notaGeral;
+  // Solo: exibe notaDele (ou notaDela se for o único campo preenchido) ou notaGeral
+  // Duo: exibe notaGeral
+  const rating = isFilmeOuLivro
+    ? isSoloView
+      ? (item.notaDele ?? item.notaDela ?? item.notaGeral)
+      : groupTipo === 'duo'
+        ? item.notaGeral
+        : item.notaDele
+    : item.notaGeral;
+
+  // Oculta badge de "Aguardando parceiro" na galeria solo
+  const showAwaitingBadge = !isSoloView && item.ratingStatus === 'awaiting_partner';
 
   return (
     <>
@@ -102,7 +111,7 @@ export function WatchItemCard({ item, index }: Props) {
 
             {/* Bottom row */}
             <div className="flex items-center gap-1.5">
-              {item.ratingStatus === 'awaiting_partner' ? (
+              {showAwaitingBadge ? (
                 <div className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
                   <Clock size={9} className="text-amber-400" />
                   <span className="text-[10px] font-medium text-amber-400">
