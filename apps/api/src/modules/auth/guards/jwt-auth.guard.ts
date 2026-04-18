@@ -20,7 +20,6 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Permite rotas marcadas com @Public()
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -47,7 +46,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token inválido ou expirado.');
     }
 
-    const { profile, groupId, groupTipo } =
+    const { profile, groupId, groupTipo, soloGroupId } =
       await this.authService.findOrCreateProfile(supabaseUserId, email, userMetadata);
 
     request['user'] = {
@@ -56,6 +55,8 @@ export class JwtAuthGuard implements CanActivate {
       profileId: profile.id,
       groupId,
       groupTipo,
+      soloGroupId,
+      genero: profile.genero ?? null,
     };
 
     return true;

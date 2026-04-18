@@ -3,6 +3,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -88,4 +89,13 @@ export class CreateWatchItemDto {
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })
   generosIds: string[];
+
+  /**
+   * Galeria alvo: 'duo' (padrão) ou 'solo'.
+   * Determina em qual grupo o item será criado.
+   */
+  @ApiPropertyOptional({ enum: ['duo', 'solo'], example: 'duo' })
+  @IsOptional()
+  @IsIn(['duo', 'solo'])
+  gallery?: 'duo' | 'solo';
 }
