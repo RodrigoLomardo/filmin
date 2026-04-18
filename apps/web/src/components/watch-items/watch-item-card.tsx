@@ -142,6 +142,7 @@ export function WatchItemCard({ item, index, gallery }: Props) {
 
       <EditWatchItemModal
         item={editOpen ? item : null}
+        gallery={gallery}
         onClose={() => setEditOpen(false)}
       />
     </>

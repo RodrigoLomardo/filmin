@@ -9,12 +9,13 @@ import { getGeneros } from '@/lib/api/generos';
 import { updateWatchItem } from '@/lib/api/watch-items';
 import { useGroupTipo } from '@/lib/hooks/use-group-tipo';
 import { createTemporada, updateTemporada } from '@/lib/api/temporadas';
-import { WatchItem, WatchItemStatus } from '@/types/watch-item';
+import { GalleryType, WatchItem, WatchItemStatus } from '@/types/watch-item';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
   item: WatchItem;
+  gallery?: GalleryType;
   onSuccess: () => void;
   onPendingChange?: (isPending: boolean) => void;
 };
@@ -243,9 +244,11 @@ function NoteCounter({
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 
-export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
+export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }: Props) {
   const queryClient = useQueryClient();
   const groupTipo = useGroupTipo();
+  // Solo quando gallery é 'solo' OU usuário não é duo
+  const isSolo = gallery === 'solo' || groupTipo !== 'duo';
 
   const [titulo, setTitulo] = useState(item.titulo);
   const [tituloOriginal, setTituloOriginal] = useState(item.tituloOriginal ?? '');
@@ -302,18 +305,19 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
 
       if (isSerie) {
         for (const t of temporadas) {
-          if (!t.notaDele || !t.notaDela) continue;
+          if (!t.notaDele) continue;
+          if (!isSolo && !t.notaDela) continue;
           if (t.isNew) {
             await createTemporada({
               watchItemId: item.id,
               numero: Number(t.numero),
               notaDele: Number(t.notaDele),
-              notaDela: Number(t.notaDela),
+              notaDela: !isSolo ? Number(t.notaDela) : undefined,
             });
           } else {
             await updateTemporada(t.id, {
               notaDele: Number(t.notaDele),
-              notaDela: Number(t.notaDela),
+              notaDela: !isSolo ? Number(t.notaDela) : undefined,
             });
           }
         }
@@ -441,13 +445,13 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
             className="overflow-hidden"
           >
             <Divider label="Notas" />
-            <div className={`grid gap-3 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-3 ${!isSolo ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <NoteCounter
-                label={groupTipo === 'duo' ? 'Dele' : 'Minha nota'}
+                label={!isSolo ? 'Dele' : 'Minha nota'}
                 value={notaDele}
                 onChange={setNotaDele}
               />
-              {groupTipo === 'duo' && (
+              {!isSolo && (
                 <NoteCounter label="Dela" value={notaDela} onChange={setNotaDela} />
               )}
             </div>
@@ -499,13 +503,13 @@ export function EditWatchItemForm({ item, onSuccess, onPendingChange }: Props) {
                         </motion.button>
                       )}
                     </div>
-                    <div className={`grid gap-2.5 ${groupTipo === 'duo' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    <div className={`grid gap-2.5 ${!isSolo ? 'grid-cols-2' : 'grid-cols-1'}`}>
                       <NoteCounter
-                        label={groupTipo === 'duo' ? 'Dele' : 'Nota'}
+                        label={!isSolo ? 'Dele' : 'Nota'}
                         value={t.notaDele}
                         onChange={(v) => updateTemporadaField(index, 'notaDele', v)}
                       />
-                      {groupTipo === 'duo' && (
+                      {!isSolo && (
                         <NoteCounter
                           label="Dela"
                           value={t.notaDela}

@@ -80,7 +80,7 @@ export function WatchItemsDashboard() {
       <WatchItemsTypeFilter value={tipo} onChange={setTipo} />
 
       <div
-        className="overflow-hidden"
+        className="overflow-hidden min-h-[45svh]"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
