@@ -180,8 +180,9 @@ export class GroupsService {
           }
         }
 
-        // Remove o membro saindo do grupo duo
-        await manager.delete(GroupMember, { groupId: duoGroupId, profileId });
+        // Remove AMBOS os membros do duo e deleta o grupo (duo está dissolvido)
+        await manager.delete(GroupMember, { groupId: duoGroupId });
+        await manager.delete(Group, { id: duoGroupId });
       });
     } catch {
       throw new InternalServerErrorException(
