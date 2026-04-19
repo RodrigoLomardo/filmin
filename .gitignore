@@ -17,3 +17,4 @@ docs/
 context.md
 supabase/*
 .claude/*
+.claude

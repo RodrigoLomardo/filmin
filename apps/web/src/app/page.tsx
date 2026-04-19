@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Plus, Heart, Shuffle, BarChart2 } from 'lucide-react';
+import { Plus, Heart, Shuffle, BarChart2, Search } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
@@ -178,6 +178,13 @@ export default function HomePage() {
                   count={pendingItems.length}
                   onClick={handleBellClick}
                 />
+                <Link
+                  href="/search"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10 transition hover:ring-pink-500/60"
+                  aria-label="Buscar pessoas"
+                >
+                  <Search size={15} className="text-zinc-300" />
+                </Link>
                 <GroupMembersButton />
                 <AvatarButton onClick={() => setProfileOpen(true)} />
               </div>

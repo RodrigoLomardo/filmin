@@ -13,6 +13,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { StalkersDisplay } from '@/components/stalkers-display';
 import { motion, AnimatePresence, animate } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -453,6 +454,17 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
                   active={open}
                   delay={0.30}
                 />
+              </div>
+            </FadeRow>
+
+            {/* ── Stalkers ── */}
+            <FadeRow delay={0.14}>
+              <div
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                <p className="text-[11px] text-zinc-600">Visitantes do perfil</p>
+                <StalkersDisplay />
               </div>
             </FadeRow>
 
