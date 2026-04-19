@@ -212,25 +212,32 @@ export class GroupsService {
 
   /**
    * Garante que o usuário possui um grupo solo.
-   * Se não existir, cria automaticamente.
+   * Usa advisory lock por profileId para evitar criação concorrente.
+   * Operação atômica — sem duplicatas mesmo sob concorrência.
    */
   async ensureSoloGroup(profileId: string): Promise<Group> {
-    const members = await this.groupMembersRepo.find({
-      where: { profileId },
-      relations: { group: true },
+    return this.dataSource.transaction(async (manager) => {
+      // Advisory lock por profile: impede corrida entre requisições concorrentes
+      await manager.query(`SELECT pg_advisory_xact_lock(1, hashtext($1))`, [profileId]);
+
+      const members = await manager.find(GroupMember, {
+        where: { profileId },
+        relations: { group: true },
+      });
+
+      const existing = members.find((m) => m.group.tipo === GroupTipo.SOLO);
+      if (existing) {
+        return manager.findOne(Group, { where: { id: existing.groupId } }) as Promise<Group>;
+      }
+
+      const group = manager.create(Group, { tipo: GroupTipo.SOLO });
+      const savedGroup = await manager.save(Group, group);
+      await manager.save(
+        GroupMember,
+        manager.create(GroupMember, { groupId: savedGroup.id, profileId }),
+      );
+      return savedGroup;
     });
-
-    const existing = members.find((m) => m.group.tipo === GroupTipo.SOLO);
-    if (existing) {
-      return this.groupsRepo.findOne({ where: { id: existing.groupId } }) as Promise<Group>;
-    }
-
-    const group = this.groupsRepo.create({ tipo: GroupTipo.SOLO });
-    const savedGroup = await this.groupsRepo.save(group);
-    await this.groupMembersRepo.save(
-      this.groupMembersRepo.create({ groupId: savedGroup.id, profileId }),
-    );
-    return savedGroup;
   }
 
   // ─── helpers ────────────────────────────────────────────────────────────────

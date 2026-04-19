@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from '../profiles/entities/profile.entity';
-import { Group } from '../groups/entities/group.entity';
 import { GroupMember } from '../groups/entities/group-member.entity';
 import { GeneroUsuario } from '../../common/enums/genero-usuario.enum';
 import { GroupTipo } from '../../common/enums/group-tipo.enum';
@@ -15,9 +14,6 @@ export class AuthService {
 
     @InjectRepository(GroupMember)
     private readonly groupMembersRepo: Repository<GroupMember>,
-
-    @InjectRepository(Group)
-    private readonly groupsRepo: Repository<Group>,
   ) {}
 
   /**
@@ -39,17 +35,28 @@ export class AuthService {
 
     if (!profile) {
       const validGeneros = Object.values(GeneroUsuario) as string[];
-      profile = this.profilesRepo.create({
-        supabaseUserId,
-        email,
-        firstName: userMetadata?.firstName ?? null,
-        lastName: userMetadata?.lastName ?? null,
-        genero:
-          userMetadata?.genero && validGeneros.includes(userMetadata.genero)
-            ? (userMetadata.genero as GeneroUsuario)
-            : null,
-      });
-      await this.profilesRepo.save(profile);
+      try {
+        profile = this.profilesRepo.create({
+          supabaseUserId,
+          email,
+          firstName: userMetadata?.firstName ?? null,
+          lastName: userMetadata?.lastName ?? null,
+          genero:
+            userMetadata?.genero && validGeneros.includes(userMetadata.genero)
+              ? (userMetadata.genero as GeneroUsuario)
+              : null,
+        });
+        await this.profilesRepo.save(profile);
+      } catch (err: any) {
+        // Unique constraint violation: outra requisição concurrent criou o profile primeiro
+        if (err?.code === '23505') {
+          const existing = await this.profilesRepo.findOne({ where: { supabaseUserId } });
+          if (!existing) throw err;
+          profile = existing;
+        } else {
+          throw err;
+        }
+      }
     }
 
     const { groupId, groupTipo, soloGroupId } = await this.getProfileGroups(profile.id);
@@ -58,8 +65,8 @@ export class AuthService {
 
   /**
    * Retorna os grupos do usuário: primário (duo tem prioridade) e solo.
-   * Se o usuário está em um duo mas ainda não tem grupo solo, cria automaticamente.
-   * Garante que todo usuário duo sempre possua uma galeria solo.
+   * Não cria grupos aqui — criação acontece apenas nos fluxos explícitos
+   * (createDuo, joinByInviteCode, leaveDuo) para evitar race conditions.
    */
   async getProfileGroups(profileId: string): Promise<{
     groupId: string | null;
@@ -77,21 +84,10 @@ export class AuthService {
     const duoMember = members.find((m) => m.group.tipo === GroupTipo.DUO);
     const primary = duoMember ?? soloMember;
 
-    // Auto-provisiona grupo solo para usuários duo que ainda não possuem um
-    let soloGroupId = soloMember?.groupId ?? null;
-    if (duoMember && !soloMember) {
-      const soloGroup = this.groupsRepo.create({ tipo: GroupTipo.SOLO });
-      const savedSolo = await this.groupsRepo.save(soloGroup);
-      await this.groupMembersRepo.save(
-        this.groupMembersRepo.create({ groupId: savedSolo.id, profileId }),
-      );
-      soloGroupId = savedSolo.id;
-    }
-
     return {
       groupId: primary?.groupId ?? null,
       groupTipo: primary?.group.tipo ?? null,
-      soloGroupId,
+      soloGroupId: soloMember?.groupId ?? null,
     };
   }
 
