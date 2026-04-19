@@ -4,6 +4,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ProfilesService } from './profiles.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ProfileStatsDto } from './dto/profile-stats.dto';
 
 @ApiTags('profiles')
 @Controller('profiles')
@@ -17,11 +18,17 @@ export class ProfilesController {
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Atualiza nome, sobrenome e gênero do perfil' })
+  @ApiOperation({ summary: 'Atualiza nome, sobrenome, gênero e privacidade do perfil' })
   updateMe(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateProfileDto,
   ) {
     return this.profilesService.update(user.profileId, dto);
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Retorna contagem de filmes, séries e livros assistidos do usuário' })
+  getStats(@CurrentUser() user: AuthenticatedUser): Promise<ProfileStatsDto> {
+    return this.profilesService.getStats(user.profileId);
   }
 }
