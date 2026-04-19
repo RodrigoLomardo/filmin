@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAchievementCheck } from '@/lib/achievement-context';
 import { Ban, CheckCircle2, Clock, Minus, Play, Plus, Star, X } from 'lucide-react';
 import { getGeneros } from '@/lib/api/generos';
 import { updateWatchItem } from '@/lib/api/watch-items';
@@ -247,6 +248,7 @@ function NoteCounter({
 export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }: Props) {
   const queryClient = useQueryClient();
   const groupTipo = useGroupTipo();
+  const triggerAchievementCheck = useAchievementCheck();
   // Solo quando gallery é 'solo' OU usuário não é duo
   const isSolo = gallery === 'solo' || groupTipo !== 'duo';
 
@@ -325,6 +327,7 @@ export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watch-items'] });
+      void triggerAchievementCheck();
       onSuccess();
     },
     onError: (error: Error) => {

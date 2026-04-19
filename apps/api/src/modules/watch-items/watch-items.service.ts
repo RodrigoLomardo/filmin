@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { ILike, In, Repository } from 'typeorm';
 import { Genero } from '../generos/entities/genero.entity';
 import { GroupMember } from '../groups/entities/group-member.entity';
 import { WatchItemStatus } from '../../common/enums/watch-item-status.enum';
@@ -41,6 +41,13 @@ export class WatchItemsService {
     profileId: string,
   ) {
     const generos = await this.validateAndGetGeneros(createWatchItemDto.generosIds);
+
+    const duplicate = await this.watchItemRepository.findOne({
+      where: { groupId, titulo: ILike(createWatchItemDto.titulo) },
+    });
+    if (duplicate) {
+      throw new BadRequestException(`Já existe um item com o título "${createWatchItemDto.titulo}".`);
+    }
 
     this.validateNotasRules({
       tipo: createWatchItemDto.tipo,
@@ -367,7 +374,8 @@ export class WatchItemsService {
       watchItem.lastRatingAt = sync.lastRatingAt;
     }
 
-    return await this.watchItemRepository.save(watchItem);
+    const updated = await this.watchItemRepository.save(watchItem);
+    return updated;
   }
 
   /**

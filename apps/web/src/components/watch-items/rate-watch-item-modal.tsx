@@ -6,6 +6,7 @@ import { X, Film, Tv, BookOpen, Star, Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { WatchItem } from '@/types/watch-item';
 import { rateWatchItem } from '@/lib/api/watch-items';
+import { useAchievementCheck } from '@/lib/achievement-context';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ export function RateWatchItemModal({ item, onClose }: Props) {
   const [nota, setNota] = useState('');
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const triggerAchievementCheck = useAchievementCheck();
 
   const Icon = item ? (TIPO_ICON[item.tipo] ?? Film) : Film;
 
@@ -26,6 +28,7 @@ export function RateWatchItemModal({ item, onClose }: Props) {
     mutationFn: (value: number) => rateWatchItem(item!.id, value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watch-items'] });
+      void triggerAchievementCheck();
       onClose();
     },
     onError: (err: Error) => {

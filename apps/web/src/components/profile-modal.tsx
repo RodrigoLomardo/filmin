@@ -12,6 +12,7 @@ import {
   UserCircle,
   Users,
   X,
+  Trophy,
 } from 'lucide-react';
 import { StalkersDisplay } from '@/components/stalkers-display';
 import { motion, AnimatePresence, animate } from 'framer-motion';
@@ -20,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMyGroup, type GroupMember } from '@/lib/api/groups';
 import { getProfile, updateProfile } from '@/lib/api/profile';
 import { useProfileStats } from '@/lib/hooks/use-profile-stats';
+import { useAchievements } from '@/lib/hooks/use-achievements';
 import { useRouter } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
@@ -296,6 +298,8 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
   });
 
   const { data: stats } = useProfileStats(profile?.id);
+  const { data: achievementsData } = useAchievements();
+  const unlockedCount = achievementsData?.filter((a) => a.unlocked).length ?? 0;
 
   const privacyMutation = useMutation({
     mutationFn: (isPrivate: boolean) => updateProfile({ isPrivate }),
@@ -319,6 +323,11 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
   function handleSettings() {
     onClose();
     router.push('/configuracoes');
+  }
+
+  function handleConquistas() {
+    onClose();
+    router.push('/conquistas');
   }
 
   function handleTogglePrivacy() {
@@ -521,6 +530,28 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
 
             {/* ── Ações ── */}
             <div className="p-2">
+              <FadeRow delay={0.18}>
+                <button
+                  onClick={handleConquistas}
+                  className="group flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Trophy size={14} className="text-zinc-700 transition-colors group-hover:text-pink-400" />
+                    <span className="text-[12px] font-medium">Conquistas</span>
+                  </div>
+                  {unlockedCount > 0 && (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[9px] font-bold text-pink-400"
+                      style={{ background: 'rgba(255,46,166,0.12)', border: '1px solid rgba(255,46,166,0.2)' }}
+                    >
+                      {unlockedCount}
+                    </span>
+                  )}
+                </button>
+              </FadeRow>
+
               <FadeRow delay={0.2}>
                 <button
                   onClick={handleSettings}
