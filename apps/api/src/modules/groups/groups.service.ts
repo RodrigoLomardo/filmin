@@ -168,22 +168,35 @@ export class GroupsService {
 
     try {
       await this.dataSource.transaction(async (manager) => {
-        // Clona para o grupo solo do membro que está saindo
+        // 1. Clona para o grupo solo do membro que está saindo
         for (const item of duoItems) {
           await this.cloneItemToGroup(item, soloGroupId, duoGroupId, manager);
         }
 
-        // Clona para o grupo solo do membro que fica
+        // 2. Clona para o grupo solo do membro que fica
         if (otherSoloGroupId) {
           for (const item of duoItems) {
             await this.cloneItemToGroup(item, otherSoloGroupId, duoGroupId, manager);
           }
         }
 
-        // Remove o membro saindo do grupo duo
-        await manager.delete(GroupMember, { groupId: duoGroupId, profileId });
+        // 3. Remove pivot M:N dos itens do duo (watch_item_generos)
+        if (duoItems.length > 0) {
+          const duoItemIds = duoItems.map((i) => i.id);
+          await manager.query(
+            `DELETE FROM watch_item_generos WHERE watch_item_id = ANY($1::uuid[])`,
+            [duoItemIds],
+          );
+          // 4. Deleta os watch_items do duo (temporadas cascadeiam via onDelete: CASCADE)
+          await manager.delete(WatchItem, duoItemIds);
+        }
+
+        // 5. Remove membros e deleta o grupo
+        await manager.delete(GroupMember, { groupId: duoGroupId });
+        await manager.delete(Group, { id: duoGroupId });
       });
-    } catch {
+    } catch (err) {
+      console.error('[leaveDuo] transaction error:', err);
       throw new InternalServerErrorException(
         'Falha ao sair do grupo. Nenhuma alteração foi aplicada.',
       );

@@ -1,33 +1,157 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { User, LogOut, Users, UserCircle, Pencil, X, Check, Loader2, Lock, Copy, DoorOpen } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/lib/auth/auth-context';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMyGroup, leaveDuoGroup, type GroupMember } from '@/lib/api/groups';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  getProfile,
-  updateProfile,
-  GENERO_LABELS,
-  type GeneroUsuario,
-  type UpdateProfileInput,
-} from '@/lib/api/profile';
-import { createClient } from '@/lib/supabase/client';
+  Film,
+  Tv,
+  BookOpen,
+  Lock,
+  Globe,
+  Settings,
+  LogOut,
+  UserCircle,
+  Users,
+  X,
+} from 'lucide-react';
+import { StalkersDisplay } from '@/components/stalkers-display';
+import { motion, AnimatePresence, animate } from 'framer-motion';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getMyGroup, type GroupMember } from '@/lib/api/groups';
+import { getProfile, updateProfile } from '@/lib/api/profile';
+import { useProfileStats } from '@/lib/hooks/use-profile-stats';
+import { useRouter } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const GENERO_OPTIONS: { value: GeneroUsuario; label: string }[] = [
-  { value: 'masculino', label: 'Masculino' },
-  { value: 'feminino', label: 'Feminino' },
-  { value: 'outro', label: 'Outro' },
-  { value: 'prefiro_nao_dizer', label: 'Prefiro não dizer' },
-];
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function memberDisplayName(member: GroupMember): string {
+  const p = member.profile;
+  if (!p) return '—';
+  const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
+  return name || p.email || '—';
+}
+
+function memberInitial(member: GroupMember): string {
+  const p = member.profile;
+  if (!p) return '?';
+  return (p.firstName?.[0] ?? p.email?.[0] ?? '?').toUpperCase();
+}
 
 // ---------------------------------------------------------------------------
-// AvatarButton — exported for use in page.tsx
+// AnimatedCounter — interpola de 0 até target via callback (sem setState no body)
+// ---------------------------------------------------------------------------
+
+function AnimatedCounter({ target, active }: { target: number; active: boolean }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+    const controls = animate(0, target, {
+      duration: 1.1,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return controls.stop;
+  }, [target, active]);
+
+  return <>{display}</>;
+}
+
+// ---------------------------------------------------------------------------
+// FadeRow — entrada em stagger por seção
+// ---------------------------------------------------------------------------
+
+function FadeRow({ delay, children }: { delay: number; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.25, 0.46, 0.45, 0.94], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PrivacyToggle — switch iOS-style
+// ---------------------------------------------------------------------------
+
+function PrivacyToggle({
+  active,
+  onToggle,
+  loading,
+}: {
+  active: boolean;
+  onToggle: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={active}
+      onClick={onToggle}
+      disabled={loading}
+      className={`relative flex h-[22px] w-9 shrink-0 items-center rounded-full transition-all duration-300 focus-visible:outline-none ${loading ? 'opacity-40' : ''}`}
+      style={{ background: active ? 'var(--primary)' : 'rgba(255,255,255,0.1)' }}
+    >
+      <motion.div
+        className="absolute h-[18px] w-[18px] rounded-full bg-white"
+        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
+        animate={{ x: active ? 16 : 2 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+      />
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// StatColumn — coluna individual dos stats
+// ---------------------------------------------------------------------------
+
+function StatColumn({
+  icon,
+  value,
+  label,
+  active,
+  delay,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+  active: boolean;
+  delay: number;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center gap-0.5 py-3.5">
+      <div className="mb-1.5 text-zinc-700">{icon}</div>
+      <motion.span
+        className="text-[22px] font-light leading-none tracking-tight text-white"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay, duration: 0.5 }}
+      >
+        <AnimatedCounter target={value} active={active} />
+      </motion.span>
+      <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-700">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AvatarButton — exportado para page.tsx
 // ---------------------------------------------------------------------------
 
 type AvatarButtonProps = { onClick: () => void };
@@ -52,29 +176,8 @@ export function AvatarButton({ onClick }: AvatarButtonProps) {
 }
 
 // ---------------------------------------------------------------------------
-// GroupMembersButton — exported for use in page.tsx (duo only)
+// GroupMembersButton — exportado para page.tsx (apenas duo)
 // ---------------------------------------------------------------------------
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function memberDisplayName(member: GroupMember): string {
-  const p = member.profile;
-  if (!p) return '—';
-  const name = [p.firstName, p.lastName].filter(Boolean).join(' ');
-  return name || p.email || '—';
-}
-
-function memberInitial(member: GroupMember): string {
-  const p = member.profile;
-  if (!p) return '?';
-  return (p.firstName?.[0] ?? p.email?.[0] ?? '?').toUpperCase();
-}
 
 export function GroupMembersButton() {
   const [open, setOpen] = useState(false);
@@ -83,10 +186,10 @@ export function GroupMembersButton() {
   const { data: group } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
@@ -98,7 +201,6 @@ export function GroupMembersButton() {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  // Only render for duo groups
   if (group?.tipo !== 'duo') return null;
 
   const members = [...(group.members ?? [])].sort(
@@ -114,7 +216,6 @@ export function GroupMembersButton() {
         aria-label="Membros do grupo"
       >
         <Users size={16} className="text-zinc-300" />
-        {/* green dot indicating duo is active */}
         <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-900" />
       </button>
 
@@ -127,40 +228,35 @@ export function GroupMembersButton() {
             exit={{ opacity: 0, scale: 0.94, y: -6 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
-            {/* Header */}
-            <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 pb-3 pt-4">
               <Users size={13} className="text-pink-400" />
               <span className="text-xs font-semibold uppercase tracking-widest text-pink-400">
                 Grupo Duo
               </span>
             </div>
 
-            {/* Members */}
             <ul className="flex flex-col gap-0.5 p-2">
               {members.map((m) => {
                 const isOwner = m.profileId === ownerProfileId;
                 return (
                   <li
                     key={m.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[0.04] transition"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/[0.04]"
                   >
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10">
                       <span className="text-xs font-semibold text-white">{memberInitial(m)}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm text-zinc-200 truncate">{memberDisplayName(m)}</p>
-                      {isOwner && (
-                        <p className="text-[10px] font-medium text-pink-400">Owner</p>
-                      )}
+                      <p className="truncate text-sm text-zinc-200">{memberDisplayName(m)}</p>
+                      {isOwner && <p className="text-[10px] font-medium text-pink-400">Owner</p>}
                     </div>
                   </li>
                 );
               })}
             </ul>
 
-            {/* Footer: group created date */}
             {group.createdAt && (
-              <div className="px-4 py-3 border-t border-[var(--border)]">
+              <div className="border-t border-[var(--border)] px-4 py-3">
                 <p className="text-[10px] text-zinc-600">
                   Grupo criado em{' '}
                   <span className="text-zinc-400">{formatDate(group.createdAt)}</span>
@@ -175,164 +271,44 @@ export function GroupMembersButton() {
 }
 
 // ---------------------------------------------------------------------------
-// ProfileModal
+// ProfileModal — floating card (top-right)
 // ---------------------------------------------------------------------------
 
 type ProfileModalProps = { open: boolean; onClose: () => void };
 
 export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
-
-  // Editing state
-  const [editing, setEditing] = useState<'profile' | 'email' | 'password' | null>(null);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Leave duo state
-  const [confirmLeave, setConfirmLeave] = useState(false);
-  const leaveMutation = useMutation({
-    mutationFn: leaveDuoGroup,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group'] });
-      queryClient.invalidateQueries({ queryKey: ['watch-items'] });
-      setConfirmLeave(false);
-      onClose();
-    },
-    onError: (err: Error) => {
-      setSaveError(err.message);
-      setConfirmLeave(false);
-    },
-  });
-
-  // Profile form fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [genero, setGenero] = useState<GeneroUsuario | ''>('');
-
-  // Email / password form fields
-  const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   const { data: group } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
     enabled: open,
   });
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
     enabled: open,
   });
 
-  // Pre-fill form when profile loads or editing starts
-  useEffect(() => {
-    if (editing === 'profile' && profile) {
-      setFirstName(profile.firstName ?? '');
-      setLastName(profile.lastName ?? '');
-      setGenero(profile.genero ?? '');
-    }
-    if (editing === 'email') setNewEmail(user?.email ?? '');
-    if (editing === 'password') { setNewPassword(''); setConfirmPassword(''); }
-  }, [editing, profile, user]);
+  const { data: stats } = useProfileStats(profile?.id);
 
-  // Close on Escape
+  const privacyMutation = useMutation({
+    mutationFn: (isPrivate: boolean) => updateProfile({ isPrivate }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
+  });
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        if (editing) { setEditing(null); setSaveError(null); }
-        else onClose();
-      }
+      if (e.key === 'Escape') onClose();
     }
     if (open) document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, editing, onClose]);
-
-  // Reset editing state when modal closes
-  useEffect(() => {
-    if (!open) { setEditing(null); setSaveError(null); setConfirmLeave(false); }
-  }, [open]);
-
-  // ---------------------------------------------------------------------------
-  // Save handlers
-  // ---------------------------------------------------------------------------
-
-  async function saveProfile() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const payload: UpdateProfileInput = {};
-      if (firstName.trim()) payload.firstName = firstName.trim();
-      if (lastName.trim()) payload.lastName = lastName.trim();
-      if (genero) payload.genero = genero;
-
-      await updateProfile(payload);
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setEditing(null);
-    } catch {
-      setSaveError('Não foi possível salvar. Tente novamente.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveEmail() {
-    if (!newEmail.trim()) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
-      if (error) throw error;
-      setEditing(null);
-      // Supabase sends a confirmation email — inform user
-      setSaveError(null);
-      alert('Verifique seu novo e-mail para confirmar a alteração.');
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Erro ao atualizar e-mail.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function savePassword() {
-    if (newPassword !== confirmPassword) {
-      setSaveError('As senhas não coincidem.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setSaveError('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      setEditing(null);
-    } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Erro ao atualizar senha.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleCopyCode() {
-    if (!group?.inviteCode) return;
-    try {
-      await navigator.clipboard.writeText(group.inviteCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    } catch {
-      // Clipboard not available
-    }
-  }
+  }, [open, onClose]);
 
   async function handleSignOut() {
     onClose();
@@ -340,440 +316,242 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
     window.location.replace('/login');
   }
 
-  // ---------------------------------------------------------------------------
-  // Derived display values
-  // ---------------------------------------------------------------------------
+  function handleSettings() {
+    onClose();
+    router.push('/configuracoes');
+  }
+
+  function handleTogglePrivacy() {
+    if (!profile || privacyMutation.isPending) return;
+    privacyMutation.mutate(!profile.isPrivate);
+  }
 
   const email = user?.email ?? '—';
   const initial = email[0]?.toUpperCase() ?? '?';
-  const groupLabel = group?.tipo === 'duo' ? 'Duo' : group?.tipo === 'solo' ? 'Solo' : null;
+  const groupLabel =
+    group?.tipo === 'duo' ? 'Duo' : group?.tipo === 'solo' ? 'Solo' : null;
   const displayName =
     profile?.firstName || profile?.lastName
       ? [profile.firstName, profile.lastName].filter(Boolean).join(' ')
       : null;
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  const isPrivate = profile?.isPrivate ?? false;
 
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Overlay */}
+          {/* Overlay com blur */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => { if (!editing) onClose(); }}
+            transition={{ duration: 0.22 }}
+            onClick={onClose}
           />
 
-          {/* Modal */}
+          {/* Modal centralizado */}
           <motion.div
-            className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2"
-            initial={{ opacity: 0, scale: 0.92, y: -8 }}
+            className="fixed left-1/2 top-1/2 z-50 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl"
+            style={{
+              translateX: '-50%',
+              translateY: '-50%',
+              background: 'rgba(11, 11, 12, 0.97)',
+              backdropFilter: 'blur(28px)',
+              WebkitBackdropFilter: 'blur(28px)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,46,166,0.13), 0 24px 64px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
+              transformOrigin: 'center',
+            }}
+            initial={{ opacity: 0, scale: 0.9, y: -6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: -8 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+            exit={{ opacity: 0, scale: 0.9, y: -6 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
           >
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
 
-              {/* ── Header ── */}
-              <div className="flex flex-col items-center gap-2 px-6 pt-7 pb-5">
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800 ring-2 ring-pink-500/60">
-                  <span className="text-xl font-bold text-white">{initial}</span>
-                  <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500">
-                    <User size={10} className="text-white" />
+            {/* ── Profile header ── */}
+            <FadeRow delay={0.04}>
+              <div className="relative flex items-center gap-3 px-4 pt-4 pb-3.5">
+                {/* Botão fechar */}
+                <button
+                  onClick={onClose}
+                  className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full text-zinc-600 transition-colors hover:bg-white/[0.06] hover:text-zinc-300"
+                  aria-label="Fechar"
+                >
+                  <X size={14} />
+                </button>
+                {/* Avatar com borda gradiente estática */}
+                <div className="relative shrink-0">
+                  <div
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-full p-[1.5px]"
+                    style={{ background: 'linear-gradient(135deg, #ff2ea6, #a855f7)' }}
+                  >
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-zinc-950">
+                      <span className="text-base font-semibold text-white">{initial}</span>
+                    </div>
                   </div>
+                  {/* Ponto online */}
+                  <div
+                    className="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full bg-emerald-500"
+                    style={{ boxShadow: '0 0 0 2px rgba(11,11,12,0.97)' }}
+                  />
                 </div>
 
-                <div className="text-center">
-                  {displayName && (
-                    <p className="text-base font-semibold text-white">{displayName}</p>
+                {/* Nome + email + badge */}
+                <div className="min-w-0 flex-1">
+                  {displayName ? (
+                    <>
+                      <p className="truncate text-sm font-semibold leading-tight text-white">
+                        {displayName}
+                      </p>
+                      <p className="truncate text-[11px] text-zinc-600">{email}</p>
+                    </>
+                  ) : (
+                    <p className="truncate text-sm font-medium text-zinc-300">{email}</p>
                   )}
-                  <p className="text-xs text-zinc-400 break-all">{email}</p>
                   {groupLabel && (
-                    <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-pink-500/10 px-2.5 py-0.5">
-                      <Users size={10} className="text-pink-400" />
-                      <span className="text-xs font-medium text-pink-400">{groupLabel}</span>
+                    <div
+                      className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+                      style={{ background: 'rgba(255,46,166,0.09)', border: '1px solid rgba(255,46,166,0.16)' }}
+                    >
+                      <Users size={9} className="text-pink-500" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-pink-500">
+                        {groupLabel}
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
+            </FadeRow>
 
-              <div className="h-px bg-[var(--border)]" />
+            {/* ── Stats ── */}
+            <FadeRow delay={0.1}>
+              <div
+                className="flex"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                <StatColumn
+                  icon={<Film size={12} />}
+                  value={stats?.filmes ?? 0}
+                  label="Filmes"
+                  active={open}
+                  delay={0.18}
+                />
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }} />
+                <StatColumn
+                  icon={<Tv size={12} />}
+                  value={stats?.series ?? 0}
+                  label="Séries"
+                  active={open}
+                  delay={0.24}
+                />
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }} />
+                <StatColumn
+                  icon={<BookOpen size={12} />}
+                  value={stats?.livros ?? 0}
+                  label="Livros"
+                  active={open}
+                  delay={0.30}
+                />
+              </div>
+            </FadeRow>
 
-              {/* ── Body ── */}
-              <div className="p-4 flex flex-col gap-1">
+            {/* ── Stalkers ── */}
+            <FadeRow delay={0.14}>
+              <div
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+              >
+                <p className="text-[11px] text-zinc-600">Visitantes do perfil</p>
+                <StalkersDisplay />
+              </div>
+            </FadeRow>
 
-                {/* Error banner */}
-                <AnimatePresence>
-                  {saveError && (
-                    <motion.p
-                      className="mb-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {saveError}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-
-                {/* ── Section: Dados do perfil ── */}
-                <SectionHeader label="Dados do perfil" />
-
-                <AnimatePresence mode="wait">
-                  {editing === 'profile' ? (
-                    <motion.div
-                      key="edit-profile"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex flex-col gap-3 px-1 py-2"
-                    >
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="Nome">
-                          <input
-                            className="field-input"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Nome"
-                          />
-                        </Field>
-                        <Field label="Sobrenome">
-                          <input
-                            className="field-input"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Sobrenome"
-                          />
-                        </Field>
-                      </div>
-
-                      <Field label="Gênero">
-                        <select
-                          className="field-input"
-                          value={genero}
-                          onChange={(e) => setGenero(e.target.value as GeneroUsuario | '')}
-                        >
-                          <option value="">Selecionar...</option>
-                          {GENERO_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
-                      </Field>
-
-                      <EditActions
-                        saving={saving}
-                        onSave={saveProfile}
-                        onCancel={() => { setEditing(null); setSaveError(null); }}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="view-profile"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {profileLoading ? (
-                        <div className="flex justify-center py-3">
-                          <Loader2 size={16} className="animate-spin text-zinc-500" />
-                        </div>
-                      ) : (
-                        <InfoRow
-                          label="Nome"
-                          value={displayName ?? '—'}
-                          onEdit={() => setEditing('profile')}
-                        />
-                      )}
-                      <InfoRow
-                        label="Gênero"
-                        value={profile?.genero ? GENERO_LABELS[profile.genero] : '—'}
-                        onEdit={() => setEditing('profile')}
-                        hideEdit
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="h-px bg-[var(--border)] my-1" />
-
-                {/* ── Section: Conta ── */}
-                <SectionHeader label="Conta" />
-
-                <AnimatePresence mode="wait">
-                  {editing === 'email' ? (
-                    <motion.div
-                      key="edit-email"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex flex-col gap-3 px-1 py-2"
-                    >
-                      <Field label="Novo e-mail">
-                        <input
-                          type="email"
-                          className="field-input"
-                          value={newEmail}
-                          onChange={(e) => setNewEmail(e.target.value)}
-                          placeholder="novo@email.com"
-                          autoComplete="email"
-                        />
-                      </Field>
-                      <EditActions
-                        saving={saving}
-                        onSave={saveEmail}
-                        onCancel={() => { setEditing(null); setSaveError(null); }}
-                      />
-                    </motion.div>
-                  ) : editing === 'password' ? (
-                    <motion.div
-                      key="edit-password"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex flex-col gap-3 px-1 py-2"
-                    >
-                      <Field label="Nova senha">
-                        <input
-                          type="password"
-                          className="field-input"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="••••••••"
-                          minLength={6}
-                          autoComplete="new-password"
-                        />
-                      </Field>
-                      <Field label="Confirmar senha">
-                        <input
-                          type="password"
-                          className="field-input"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                        />
-                      </Field>
-                      <EditActions
-                        saving={saving}
-                        onSave={savePassword}
-                        onCancel={() => { setEditing(null); setSaveError(null); }}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="view-account"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <InfoRow
-                        label="E-mail"
-                        value={email}
-                        onEdit={() => setEditing('email')}
-                      />
-                      <InfoRow
-                        label="Senha"
-                        value="••••••••"
-                        onEdit={() => setEditing('password')}
-                        icon={<Lock size={12} className="text-zinc-600" />}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="h-px bg-[var(--border)] my-1" />
-
-                {/* ── Section: Grupo ── */}
-                {group?.tipo === 'duo' && (
-                  <>
-                    <SectionHeader label="Grupo" />
-
-                    {group.inviteCode && (
-                      <div className="px-1 pb-1">
-                        <p className="mb-1.5 text-[10px] text-zinc-600">Código de convite</p>
-                        <div className="flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 ring-1 ring-zinc-800">
-                          <span className="flex-1 font-mono text-sm tracking-[0.22em] text-pink-400">
-                            {group.inviteCode}
-                          </span>
-                          <button
-                            onClick={handleCopyCode}
-                            className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
-                          >
-                            {codeCopied
-                              ? <Check size={12} className="text-green-400" />
-                              : <Copy size={12} />}
-                            {codeCopied ? 'Copiado!' : 'Copiar'}
-                          </button>
-                        </div>
-                        <p className="mt-1.5 text-[10px] text-zinc-700">
-                          Compartilhe com sua dupla para ela entrar no grupo.
-                        </p>
-                      </div>
+            {/* ── Privacidade ── */}
+            <FadeRow delay={0.16}>
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <AnimatePresence mode="wait">
+                    {isPrivate ? (
+                      <motion.div
+                        key="lock"
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.7 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Lock size={13} className="text-pink-500" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="globe"
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.7 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Globe size={13} className="text-zinc-600" />
+                      </motion.div>
                     )}
+                  </AnimatePresence>
+                  <div>
+                    <p className="text-[12px] font-medium text-zinc-300">Perfil privado</p>
+                    <motion.p
+                      key={String(isPrivate)}
+                      className="text-[10px] text-zinc-700"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {isPrivate ? 'Apenas você vê' : 'Visível para todos'}
+                    </motion.p>
+                  </div>
+                </div>
+                <PrivacyToggle
+                  active={isPrivate}
+                  onToggle={handleTogglePrivacy}
+                  loading={privacyMutation.isPending}
+                />
+              </div>
+            </FadeRow>
 
-                    {/* Leave duo */}
-                    <AnimatePresence mode="wait">
-                      {confirmLeave ? (
-                        <motion.div
-                          key="confirm"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.18 }}
-                          className="mx-1 mb-1 rounded-xl bg-red-500/8 px-3 py-3 ring-1 ring-red-500/20"
-                        >
-                          <p className="mb-2 text-xs text-red-300 leading-snug">
-                            Tem certeza? Os itens do duo serão copiados para sua galeria solo. Essa ação não pode ser desfeita.
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setConfirmLeave(false)}
-                              disabled={leaveMutation.isPending}
-                              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-700 py-1.5 text-xs text-zinc-400 transition hover:border-zinc-600 disabled:opacity-50"
-                            >
-                              <X size={11} /> Cancelar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => leaveMutation.mutate()}
-                              disabled={leaveMutation.isPending}
-                              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-500/80 py-1.5 text-xs font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
-                            >
-                              {leaveMutation.isPending
-                                ? <Loader2 size={11} className="animate-spin" />
-                                : <Check size={11} />}
-                              {leaveMutation.isPending ? 'Saindo...' : 'Confirmar'}
-                            </button>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.button
-                          key="leave-btn"
-                          type="button"
-                          onClick={() => setConfirmLeave(true)}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 transition hover:bg-red-500/8 hover:text-red-400"
-                        >
-                          <DoorOpen size={15} />
-                          Sair do grupo duo
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
+            {/* ── Separador ── */}
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '0 16px' }} />
 
-                    <div className="h-px bg-[var(--border)] my-1" />
-                  </>
-                )}
+            {/* ── Ações ── */}
+            <div className="p-2">
+              <FadeRow delay={0.2}>
+                <button
+                  onClick={handleSettings}
+                  className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+                  style={{ ':hover': { background: 'rgba(255,255,255,0.04)' } } as React.CSSProperties}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Settings size={14} className="text-zinc-700 transition-colors group-hover:text-zinc-400" />
+                  <span className="text-[12px] font-medium">Configurações</span>
+                </button>
+              </FadeRow>
 
-                {/* Sign out */}
+              <FadeRow delay={0.24}>
                 <button
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-400 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-zinc-600 transition-colors duration-150 hover:text-red-400"
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <LogOut size={15} />
-                  Sair da conta
+                  <LogOut size={14} className="text-zinc-700 transition-colors group-hover:text-red-500" />
+                  <span className="text-[12px] font-medium">Sair da conta</span>
                 </button>
-              </div>
+              </FadeRow>
             </div>
+
+            {/* Espaço inferior */}
+            <div className="h-1.5" />
           </motion.div>
         </>
       )}
     </AnimatePresence>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-      {label}
-    </p>
-  );
-}
-
-function InfoRow({
-  label,
-  value,
-  onEdit,
-  hideEdit,
-  icon,
-}: {
-  label: string;
-  value: string;
-  onEdit: () => void;
-  hideEdit?: boolean;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-white/[0.03] transition">
-      <div className="flex items-center gap-2 min-w-0">
-        {icon}
-        <div className="min-w-0">
-          <p className="text-[10px] text-zinc-600">{label}</p>
-          <p className="text-sm text-zinc-300 truncate">{value}</p>
-        </div>
-      </div>
-      {!hideEdit && (
-        <button
-          onClick={onEdit}
-          className="ml-2 flex-shrink-0 rounded-lg p-1.5 text-zinc-600 transition hover:bg-zinc-800 hover:text-zinc-300"
-          aria-label={`Editar ${label}`}
-        >
-          <Pencil size={13} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[10px] text-zinc-500">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function EditActions({
-  saving,
-  onSave,
-  onCancel,
-}: {
-  saving: boolean;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="flex gap-2 pt-1">
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={saving}
-        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] py-2 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200 disabled:opacity-50"
-      >
-        <X size={14} /> Cancelar
-      </button>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={saving}
-        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-pink-500 py-2 text-sm font-medium text-white transition hover:bg-pink-400 disabled:opacity-50"
-      >
-        {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-        {saving ? 'Salvando...' : 'Salvar'}
-      </button>
-    </div>
   );
 }

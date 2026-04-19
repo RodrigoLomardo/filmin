@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { GeneroUsuario } from '../../../common/enums/genero-usuario.enum';
 
@@ -19,4 +19,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsEnum(GeneroUsuario)
   genero?: GeneroUsuario;
+
+  @ApiPropertyOptional({ description: 'Torna o perfil privado (apenas o dono acessa)' })
+  @IsOptional()
+  @IsBoolean()
+  isPrivate?: boolean;
 }

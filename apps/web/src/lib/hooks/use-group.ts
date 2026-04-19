@@ -19,7 +19,8 @@ export function useGroup(): {
   const { data: group, isLoading } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const tipo = group?.tipo ?? null;

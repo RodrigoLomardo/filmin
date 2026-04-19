@@ -29,6 +29,9 @@ export class Profile {
   @Column({ type: 'enum', enum: GeneroUsuario, nullable: true })
   genero?: GeneroUsuario | null;
 
+  @Column({ name: 'is_private', type: 'boolean', default: false })
+  isPrivate: boolean;
+
   @OneToMany(() => GroupMember, (gm) => gm.profile)
   groupMembers: GroupMember[];
 

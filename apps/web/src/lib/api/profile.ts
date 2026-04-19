@@ -13,6 +13,7 @@ export type Profile = {
   firstName: string | null;
   lastName: string | null;
   genero: GeneroUsuario | null;
+  isPrivate: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -21,6 +22,13 @@ export type UpdateProfileInput = {
   firstName?: string;
   lastName?: string;
   genero?: GeneroUsuario;
+  isPrivate?: boolean;
+};
+
+export type ProfileStats = {
+  filmes: number;
+  series: number;
+  livros: number;
 };
 
 export const GENERO_LABELS: Record<GeneroUsuario, string> = {
@@ -39,4 +47,8 @@ export async function updateProfile(data: UpdateProfileInput): Promise<Profile> 
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+}
+
+export async function getProfileStats(): Promise<ProfileStats> {
+  return apiFetch<ProfileStats>('/profiles/stats');
 }
