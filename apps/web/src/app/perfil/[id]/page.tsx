@@ -13,8 +13,11 @@ import {
   Heart,
 } from 'lucide-react';
 import { getPublicProfile } from '@/lib/api/social-profile';
+import { getPublicAchievements } from '@/lib/api/achievements';
 import { StreakFire } from '@/components/streak/streak-fire';
+import { AchievementBadge } from '@/components/achievements/achievement-badge';
 import type { PublicProfile, RecentWatchedItem } from '@/types/social-profile';
+import type { Achievement } from '@/types/achievement';
 import { ApiError } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
@@ -124,6 +127,28 @@ function StatPill({
 }
 
 // ---------------------------------------------------------------------------
+// Achievement helpers
+// ---------------------------------------------------------------------------
+
+function filterHighestUnlockedLevels(achievements: Achievement[]): Achievement[] {
+  const grouped = new Map<string, Achievement>();
+  const singles: Achievement[] = [];
+
+  for (const a of achievements) {
+    if (a.levelGroup) {
+      const current = grouped.get(a.levelGroup);
+      if (!current || (a.level ?? 0) > (current.level ?? 0)) {
+        grouped.set(a.levelGroup, a);
+      }
+    } else {
+      singles.push(a);
+    }
+  }
+
+  return [...grouped.values(), ...singles];
+}
+
+// ---------------------------------------------------------------------------
 // PrivateProfileView
 // ---------------------------------------------------------------------------
 
@@ -177,6 +202,18 @@ export default function ProfilePage() {
     retry: false,
     staleTime: 30_000,
   });
+
+  const { data: achievements } = useQuery<Achievement[]>({
+    queryKey: ['public-achievements', profileId],
+    queryFn: () => getPublicAchievements(profileId),
+    enabled: !!profile && !profile.isPrivate,
+    staleTime: 30_000,
+  });
+
+  // Para perfil público: só mostra o nível mais alto de cada grupo
+  const displayAchievements = achievements
+    ? filterHighestUnlockedLevels(achievements)
+    : [];
 
   const isPrivate =
     error instanceof ApiError && error.message === 'PROFILE_PRIVATE';
@@ -309,6 +346,30 @@ export default function ProfilePage() {
             <div style={{ width: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }} />
             <StatPill icon={<BookOpen size={12} />} value={profile.stats.livros} label="Livros" />
           </div>
+
+          {/* ── Conquistas ── */}
+          {displayAchievements.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+            >
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                Conquistas · {displayAchievements.length}
+              </p>
+              <div className="grid grid-cols-5 gap-3 sm:grid-cols-7">
+                {displayAchievements.map((a, i) => (
+                  <AchievementBadge
+                    key={a.slug}
+                    achievement={a}
+                    size="sm"
+                    showProgress={false}
+                    delay={i * 0.04}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* ── Recent watched ── */}
           {profile.recentWatched.length > 0 ? (

@@ -60,7 +60,7 @@ export const FIRE_TIERS: { min: number; max: number | null; theme: FireTheme; la
     },
   },
   {
-    min: 60, max: null,
+    min: 60, max: 99,
     label: 'Lendário',
     emoji: '🔥',
     theme: {
@@ -69,6 +69,18 @@ export const FIRE_TIERS: { min: number; max: number | null; theme: FireTheme; la
       core: '#fae8ff',
       glow: 'rgba(192,132,252,0.6)',
       glowRgb: '192,132,252',
+    },
+  },
+  {
+    min: 100, max: null,
+    label: 'Transcendente',
+    emoji: '🔥',
+    theme: {
+      outer: '#ff2ea6',
+      mid: '#f9126e',
+      core: '#ffe6f3',
+      glow: 'rgba(255,46,166,0.65)',
+      glowRgb: '255,46,166',
     },
   },
 ];

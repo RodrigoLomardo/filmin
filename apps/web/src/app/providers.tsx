@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 import { AuthProvider } from '../lib/auth/auth-context';
+import { AchievementProvider } from '../lib/achievement-context';
 import { ApiError } from '../lib/api/client';
 
 type ProvidersProps = {
@@ -40,7 +41,9 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <AuthProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <AchievementProvider>{children}</AchievementProvider>
+      </QueryClientProvider>
     </AuthProvider>
   );
 }

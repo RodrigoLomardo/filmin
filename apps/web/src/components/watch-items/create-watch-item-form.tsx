@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useAchievementCheck } from '@/lib/achievement-context';
 import {
   Film,
   Tv,
@@ -349,6 +350,7 @@ function PosterInput({
 export function CreateWatchItemForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const triggerAchievementCheck = useAchievementCheck();
   const { isDuo, hasSoloGallery } = useGroup();
   const [gallery, setGallery] = useState<GalleryType>('duo');
   // Solo quando usuário não é duo OU escolheu a galeria solo
@@ -396,10 +398,10 @@ export function CreateWatchItemForm() {
 
       return createdItem;
     },
-    onSuccess: (createdItem) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['watch-items'] });
       setErrorMessage('');
-
+      void triggerAchievementCheck();
       router.push('/');
     },
     onError: (error: Error) => {
