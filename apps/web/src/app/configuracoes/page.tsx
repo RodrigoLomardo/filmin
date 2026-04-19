@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Copy, DoorOpen, KeyRound, Loader2, Lock, Pencil, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, Copy, DoorOpen, KeyRound, Loader2, Lock, Pencil, Plus, Users, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
-import { getMyGroup, joinGroupByInviteCode, leaveDuoGroup } from '@/lib/api/groups';
+import { getMyGroup, joinGroupByInviteCode, createDuoGroup, leaveDuoGroup, type Group } from '@/lib/api/groups';
 import { getProfile, updateProfile, GENERO_LABELS, type GeneroUsuario, type UpdateProfileInput } from '@/lib/api/profile';
 import { createClient } from '@/lib/supabase/client';
 import { ApiError } from '@/lib/api/client';
@@ -44,26 +44,33 @@ export default function ConfiguracoesPage() {
   // ── Group section ──
   const [codeCopied, setCodeCopied] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
+  // Duo criado por usuário solo — guarda o grupo recém-criado para exibir o código
+  const [newDuoGroup, setNewDuoGroup] = useState<Group | null>(null);
 
   const { data: group } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const joinMutation = useMutation({
     mutationFn: () => joinGroupByInviteCode(joinCode.trim().toUpperCase()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group'] });
-      queryClient.invalidateQueries({ queryKey: ['watch-items'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['group'] }),
+        queryClient.refetchQueries({ queryKey: ['watch-items'] }),
+      ]);
       router.replace('/');
     },
     onError: (err: unknown) => {
@@ -71,15 +78,29 @@ export default function ConfiguracoesPage() {
     },
   });
 
+  const createDuoMutation = useMutation({
+    mutationFn: createDuoGroup,
+    onSuccess: async (created) => {
+      await queryClient.refetchQueries({ queryKey: ['group'] });
+      setNewDuoGroup(created);
+    },
+  });
+
   const leaveMutation = useMutation({
     mutationFn: leaveDuoGroup,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group'] });
-      queryClient.invalidateQueries({ queryKey: ['watch-items'] });
+    onSuccess: async () => {
+      setLeaveError(null);
       setConfirmLeave(false);
+      setNewDuoGroup(null);
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['group'] }),
+        queryClient.refetchQueries({ queryKey: ['watch-items'] }),
+      ]);
     },
-    onError: () => {
-      setConfirmLeave(false);
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof Error ? err.message : 'Erro ao sair do grupo. Tente novamente.';
+      setLeaveError(msg);
     },
   });
 
@@ -108,7 +129,7 @@ export default function ConfiguracoesPage() {
       if (lastName.trim()) payload.lastName = lastName.trim();
       if (genero) payload.genero = genero;
       await updateProfile(payload);
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.refetchQueries({ queryKey: ['profile'] });
       setEditingProfile(false);
     } catch {
       setProfileError('Não foi possível salvar. Tente novamente.');
@@ -160,10 +181,9 @@ export default function ConfiguracoesPage() {
     }
   }
 
-  async function handleCopyCode() {
-    if (!group?.inviteCode) return;
+  async function handleCopyCode(code: string) {
     try {
-      await navigator.clipboard.writeText(group.inviteCode);
+      await navigator.clipboard.writeText(code);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
     } catch {
@@ -397,7 +417,7 @@ export default function ConfiguracoesPage() {
                       {group.inviteCode}
                     </span>
                     <button
-                      onClick={handleCopyCode}
+                      onClick={() => handleCopyCode(group.inviteCode!)}
                       className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
                     >
                       {codeCopied
@@ -411,6 +431,19 @@ export default function ConfiguracoesPage() {
                   </p>
                 </div>
               )}
+
+              <AnimatePresence>
+                {leaveError && (
+                  <motion.p
+                    className="mb-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {leaveError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
               <AnimatePresence mode="wait">
                 {confirmLeave ? (
@@ -428,7 +461,7 @@ export default function ConfiguracoesPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setConfirmLeave(false)}
+                        onClick={() => { setConfirmLeave(false); setLeaveError(null); }}
                         disabled={leaveMutation.isPending}
                         className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-700 py-1.5 text-xs text-zinc-400 transition hover:border-zinc-600 disabled:opacity-50"
                       >
@@ -451,7 +484,7 @@ export default function ConfiguracoesPage() {
                   <motion.button
                     key="leave-btn"
                     type="button"
-                    onClick={() => setConfirmLeave(true)}
+                    onClick={() => { setConfirmLeave(true); setLeaveError(null); }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -463,18 +496,75 @@ export default function ConfiguracoesPage() {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
-            // ── Usuário Solo — entrar em Duo ──
-            <div className="flex flex-col gap-4 p-4">
+          ) : newDuoGroup ? (
+            // ── Duo recém-criado — exibe código para compartilhar ──
+            <motion.div
+              key="new-duo-code"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="flex flex-col gap-4 p-4"
+            >
               <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-pink-500/10 px-2.5 py-1 text-xs font-medium text-pink-400">
+                  <Users size={10} /> Grupo criado!
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Compartilhe o código abaixo. Sua galeria solo está preservada.
+              </p>
+              <div className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-4 ring-1 ring-zinc-800">
+                <span className="flex-1 font-mono text-xl tracking-[0.3em] text-pink-400">
+                  {newDuoGroup.inviteCode}
+                </span>
+                <button
+                  onClick={() => handleCopyCode(newDuoGroup.inviteCode!)}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700"
+                >
+                  {codeCopied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                  {codeCopied ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+              <button
+                onClick={() => router.replace('/')}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-pink-500 py-2.5 text-sm font-medium text-white transition hover:bg-pink-400"
+              >
+                Ir para o dashboard
+              </button>
+            </motion.div>
+          ) : (
+            // ── Usuário Solo — criar ou entrar em Duo ──
+            <div className="flex flex-col gap-3 p-4">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">
                   Solo
                 </span>
                 <span className="text-xs text-zinc-600">Sua galeria pessoal</span>
               </div>
 
+              {/* Criar Duo */}
               <div className="rounded-xl bg-zinc-900/60 border border-[var(--border)] p-4">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus size={14} className="text-pink-400" />
+                  <p className="text-sm font-medium text-white">Criar um grupo Duo</p>
+                </div>
+                <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
+                  Crie um grupo e compartilhe o código com sua dupla. Sua galeria solo é preservada.
+                </p>
+                <button
+                  onClick={() => createDuoMutation.mutate()}
+                  disabled={createDuoMutation.isPending}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-pink-500 py-2.5 text-sm font-medium text-white transition hover:bg-pink-400 disabled:opacity-50"
+                >
+                  {createDuoMutation.isPending
+                    ? <><Loader2 size={14} className="animate-spin" /> Criando...</>
+                    : <><Users size={14} /> Criar Duo</>}
+                </button>
+              </div>
+
+              {/* Entrar com código */}
+              <div className="rounded-xl bg-zinc-900/60 border border-[var(--border)] p-4">
+                <div className="flex items-center gap-2 mb-2">
                   <KeyRound size={14} className="text-pink-400" />
                   <p className="text-sm font-medium text-white">Entrar em um Duo</p>
                 </div>
@@ -518,11 +608,11 @@ export default function ConfiguracoesPage() {
                   <button
                     type="submit"
                     disabled={!joinCode.trim() || joinMutation.isPending}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-pink-500 py-2.5 text-sm font-medium text-white transition hover:bg-pink-400 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-800 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700 disabled:opacity-50"
                   >
                     {joinMutation.isPending
                       ? <><Loader2 size={14} className="animate-spin" /> Entrando...</>
-                      : <><Users size={14} /> Entrar no grupo</>}
+                      : <><KeyRound size={14} /> Entrar no grupo</>}
                   </button>
                 </form>
               </div>

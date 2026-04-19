@@ -70,7 +70,8 @@ export function GroupMembersButton() {
   const { data: group } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Close on outside click
@@ -170,14 +171,14 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const { data: group } = useQuery({
     queryKey: ['group'],
     queryFn: getMyGroup,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
     enabled: open,
   });
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
     enabled: open,
   });
 
