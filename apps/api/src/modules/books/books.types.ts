@@ -9,6 +9,7 @@ export interface GoogleBooksVolumeInfo {
   publishedDate?: string;
   description?: string;
   imageLinks?: GoogleBooksImageLinks;
+  categories?: string[];
 }
 
 export interface GoogleBooksRaw {
@@ -23,4 +24,5 @@ export interface BookSearchResult {
   anoPublicacao: number | null;
   descricao: string | null;
   imagemUrl: string | null;
+  generosNomes: string[];
 }
