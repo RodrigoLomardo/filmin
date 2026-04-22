@@ -14,6 +14,7 @@ import { BooksModule } from './modules/books/books.module';
 import { StreakModule } from './modules/streak/streak.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AchievementsModule } from './modules/achievements/achievements.module';
+import { TheoModule } from './modules/theo/theo.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -44,6 +45,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     AuthModule,
     NotificationsModule,
     AchievementsModule,
+    TheoModule,
   ],
   providers: [
     {

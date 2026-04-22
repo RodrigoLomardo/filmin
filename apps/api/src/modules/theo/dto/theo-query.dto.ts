@@ -1,0 +1,18 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { WatchItemTipo } from '../../../common/enums/watch-item-tipo.enum';
+
+export class TheoQueryDto {
+  @ApiProperty({ description: 'Mensagem do usuário para o Theo' })
+  @IsString()
+  @IsNotEmpty()
+  message: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtro de tipo explícito (complementa o parser de intenção)',
+    enum: WatchItemTipo,
+  })
+  @IsEnum(WatchItemTipo)
+  @IsOptional()
+  tipoFilter?: WatchItemTipo;
+}
