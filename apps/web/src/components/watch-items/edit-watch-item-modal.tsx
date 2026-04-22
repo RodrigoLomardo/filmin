@@ -50,6 +50,7 @@ export function EditWatchItemModal({ item, gallery, onClose }: Props) {
               borderRadius: '28px 28px 0 0',
               background: 'linear-gradient(180deg, #121214 0%, #0b0b0d 100%)',
               boxShadow: '0 -1px 0 rgba(255,255,255,0.05), 0 -32px 80px rgba(0,0,0,0.95)',
+              touchAction: 'pan-y',
             }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
@@ -167,8 +168,13 @@ export function EditWatchItemModal({ item, gallery, onClose }: Props) {
 
             {/* ── Scrollable form ── */}
             <div
-              className="min-h-0 flex-1 overflow-y-auto px-4 pb-2"
-              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-2"
+              style={{
+                scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                touchAction: 'pan-y',
+              }}
             >
               <EditWatchItemForm
                 item={item}
