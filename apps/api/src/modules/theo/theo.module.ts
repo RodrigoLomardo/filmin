@@ -8,11 +8,12 @@ import { TheoService } from './theo.service';
 import { TheoGroqService } from './theo-groq.service';
 import { TheoRecommendationService } from './theo-recommendation.service';
 import { TheoMemoryService } from './theo-memory.service';
+import { TheoDebateService } from './theo-debate.service';
 import { TheoMemory } from './entities/theo-memory.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([WatchItem, TheoMemory]), TmdbModule, BooksModule],
   controllers: [TheoController],
-  providers: [TheoService, TheoGroqService, TheoRecommendationService, TheoMemoryService],
+  providers: [TheoService, TheoGroqService, TheoRecommendationService, TheoMemoryService, TheoDebateService],
 })
 export class TheoModule {}

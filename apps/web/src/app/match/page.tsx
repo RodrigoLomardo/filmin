@@ -9,6 +9,7 @@ import { getMatchPool } from '@/lib/api/watch-items';
 import { VoteButton } from '@/components/match/VoteButton';
 import { ResultScreen } from '@/components/match/ResultScreen';
 import { SorteioMatchScreen } from '@/components/match/SorteioMatchScreen';
+import { DebateMatchScreen } from '@/components/match/DebateMatchScreen';
 import type { WatchItem } from '@/types/watch-item';
 
 type Vote = boolean | null;
@@ -24,6 +25,7 @@ export default function MatchPage() {
   const [votoEla, setVotoEla] = useState<Vote>(null);
   const [matchesDaSessao, setMatchesDaSessao] = useState<WatchItem[]>([]);
   const [showSorteio, setShowSorteio] = useState(false);
+  const [showDebate, setShowDebate] = useState(false);
 
   const currentItem = pool[currentIndex];
   const isFinished = pool.length > 0 && currentIndex >= pool.length;
@@ -50,6 +52,7 @@ export default function MatchPage() {
     setVotoEle(null);
     setVotoEla(null);
     setShowSorteio(false);
+    setShowDebate(false);
   }
 
   if (isLoading) {
@@ -92,12 +95,17 @@ export default function MatchPage() {
     return <SorteioMatchScreen matches={matchesDaSessao} onBack={() => setShowSorteio(false)} />;
   }
 
+  if (isFinished && showDebate) {
+    return <DebateMatchScreen matches={matchesDaSessao} onBack={() => setShowDebate(false)} />;
+  }
+
   if (isFinished) {
     return (
       <ResultScreen
         matches={matchesDaSessao}
         onRestart={handleRestart}
         onSortear={matchesDaSessao.length > 1 ? () => setShowSorteio(true) : undefined}
+        onDebate={matchesDaSessao.length >= 2 ? () => setShowDebate(true) : undefined}
       />
     );
   }

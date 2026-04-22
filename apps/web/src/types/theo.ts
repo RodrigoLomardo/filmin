@@ -26,3 +26,29 @@ export interface TheoMessage {
   suggestions?: string[];
   timestamp: Date;
 }
+
+// Debate types
+
+export interface TheoDebatePayload {
+  itemAId: string;
+  itemBId: string;
+  sessionId?: string;
+}
+
+export interface DebateItem {
+  id: string;
+  titulo: string;
+  posterUrl: string | null;
+  anoLancamento: number | null;
+  generos: string[];
+  notaGeral: number | null;
+}
+
+export interface TheoDebateResponse {
+  itemA: DebateItem;
+  itemB: DebateItem;
+  argumentsForA: string[];
+  argumentsForB: string[];
+  verdict: string;
+  winner: 'A' | 'B' | 'tie';
+}

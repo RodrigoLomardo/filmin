@@ -21,6 +21,7 @@ import { useNotifications } from '@/lib/hooks/use-notifications';
 import { DuoDissolvedModal } from '@/components/notifications/duo-dissolved-modal';
 import { MemberJoinedToast } from '@/components/notifications/member-joined-toast';
 import { StreakDisplay } from '@/components/streak/streak-display';
+import { NudgeBell } from '@/components/nudges/nudge-bell';
 
 
 export default function HomePage() {
@@ -113,6 +114,7 @@ export default function HomePage() {
         {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       </AnimatePresence>
 
+
       <AnimatePresence>
         {!showSplash && (
           <motion.main
@@ -175,6 +177,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3 pt-1">
                 <StreakDisplay onModalOpenChange={setStreakModalOpen} />
                 <div className="h-5 w-px bg-zinc-800" />
+                <NudgeBell />
                 <PendingNotificationButton
                   count={pendingItems.length}
                   onClick={handleBellClick}
