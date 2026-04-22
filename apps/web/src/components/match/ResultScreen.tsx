@@ -1,15 +1,16 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Film, Shuffle } from 'lucide-react';
+import { Film, Shuffle, Swords } from 'lucide-react';
 import type { WatchItem } from '@/types/watch-item';
 
 interface ResultScreenProps {
   matches: WatchItem[];
   onRestart: () => void;
   onSortear?: () => void;
+  onDebate?: () => void;
 }
 
-export function ResultScreen({ matches, onRestart, onSortear }: ResultScreenProps) {
+export function ResultScreen({ matches, onRestart, onSortear, onDebate }: ResultScreenProps) {
   return (
     <motion.div
       className="flex h-screen flex-col bg-black"
@@ -80,15 +81,24 @@ export function ResultScreen({ matches, onRestart, onSortear }: ResultScreenProp
             Sortear entre os matches
           </motion.button>
         )}
-        <motion.button
-          onClick={onRestart}
-          className={`w-full rounded-full py-3.5 text-sm font-semibold ${
-            onSortear ? 'border border-white/15 text-white/50' : 'bg-pink-500 text-white'
-          }`}
-          whileTap={{ scale: 0.96 }}
-        >
-          Jogar novamente
-        </motion.button>
+        {onDebate && (
+          <motion.button
+            onClick={onDebate}
+            className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,46,166,0.15) 0%, rgba(168,85,247,0.15) 100%)',
+              border: '1px solid rgba(255,46,166,0.3)',
+            }}
+            whileTap={{ scale: 0.96 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: matches.length * 0.08 + 0.18 }}
+          >
+            <Swords size={16} className="text-[#ff2ea6]" />
+            <span>Debater com o Theo</span>
+          </motion.button>
+        )}
+
         <Link
           href="/"
           className="block w-full rounded-full border border-white/10 py-3.5 text-center text-sm font-semibold text-white/30"

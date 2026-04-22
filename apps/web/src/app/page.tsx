@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Plus, Heart, Shuffle, BarChart2, Search } from 'lucide-react';
+import { Plus, Heart, Shuffle, BarChart2, Search, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
@@ -21,6 +21,7 @@ import { useNotifications } from '@/lib/hooks/use-notifications';
 import { DuoDissolvedModal } from '@/components/notifications/duo-dissolved-modal';
 import { MemberJoinedToast } from '@/components/notifications/member-joined-toast';
 import { StreakDisplay } from '@/components/streak/streak-display';
+import { NudgeBell } from '@/components/nudges/nudge-bell';
 
 
 export default function HomePage() {
@@ -74,6 +75,7 @@ export default function HomePage() {
       ? { label: 'Modo Match', href: '/match', icon: Heart }
       : { label: 'Escolha Rápida', href: '/escolha-rapida', icon: Shuffle },
     { label: 'Retrospectiva', href: '/retrospectiva', icon: BarChart2 },
+    { label: 'Theo', href: '/theo', icon: Sparkles },
     { label: 'Novo item', href: '/cadastro', icon: Plus },
   ];
 
@@ -111,6 +113,7 @@ export default function HomePage() {
       <AnimatePresence>
         {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       </AnimatePresence>
+
 
       <AnimatePresence>
         {!showSplash && (
@@ -174,6 +177,7 @@ export default function HomePage() {
               <div className="flex items-center gap-3 pt-1">
                 <StreakDisplay onModalOpenChange={setStreakModalOpen} />
                 <div className="h-5 w-px bg-zinc-800" />
+                <NudgeBell />
                 <PendingNotificationButton
                   count={pendingItems.length}
                   onClick={handleBellClick}

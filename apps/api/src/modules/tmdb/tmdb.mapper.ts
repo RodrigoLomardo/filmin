@@ -56,6 +56,22 @@ export function mapMovie(raw: TmdbMovieRaw): TmdbSearchResult {
   };
 }
 
+// Mapeamento inverso: nome do gênero → IDs TMDB (para discover endpoint)
+export const GENRE_NAME_TO_TMDB_IDS: Record<string, number[]> = {
+  'Ação': [28, 10759],
+  'Aventura': [12],
+  'Animação': [16],
+  'Comédia': [35],
+  'Crime': [80],
+  'Documentário': [99],
+  'Drama': [18],
+  'Fantasia': [14, 10765],
+  'Ficção Científica': [878, 10765],
+  'Terror': [27],
+  'Suspense': [9648, 53],
+  'Romance': [10749],
+};
+
 export function mapTv(raw: TmdbTvRaw): TmdbSearchResult {
   const ids = raw.genre_ids ?? raw.genres?.map((g) => g.id) ?? [];
   return {

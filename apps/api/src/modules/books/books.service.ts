@@ -15,6 +15,22 @@ export class BooksService {
     this.apiKey = this.config.get<string>('GOOGLE_BOOKS_API_KEY') ?? '';
   }
 
+  async discoverByGenres(genreKeywords: string[], limit = 6): Promise<BookSearchResult[]> {
+    if (genreKeywords.length === 0) return [];
+    const subject = genreKeywords.slice(0, 3).join('+');
+    const query = `subject:${subject}`;
+    const params = new URLSearchParams({
+      q: query,
+      maxResults: String(limit),
+      printType: 'books',
+      orderBy: 'relevance',
+      ...(this.apiKey ? { key: this.apiKey } : {}),
+    });
+    const url = `${GOOGLE_BOOKS_BASE}/volumes?${params.toString()}`;
+    const data = await this.fetchWithRetry<{ items?: GoogleBooksRaw[] }>(url);
+    return (data.items ?? []).map(mapBook);
+  }
+
   async search(query: string): Promise<BookSearchResult[]> {
     const params = new URLSearchParams({
       q: query,
