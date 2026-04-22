@@ -15,7 +15,8 @@ export type TheoIntent =
   | 'recommend_movie'
   | 'recommend_duo'
   | 'surprise_me'
-  | 'out_of_scope';
+  | 'out_of_scope'
+  | 'family_chat';
 
 export interface TheoResponse {
   intent: TheoIntent;
@@ -41,6 +42,7 @@ export class TheoService {
     dto: TheoQueryDto,
     groupId: string,
     groupTipo: GroupTipo | null,
+    userEmail: string,
   ): Promise<TheoResponse> {
     const sessionId = resolveSessionId(dto);
     const parsedIntent = parseIntent(dto.message);
@@ -58,6 +60,7 @@ export class TheoService {
       parsedIntent,
       recommendationCtx,
       memory,
+      userEmail,
     });
 
     if (response.intent !== 'out_of_scope') {

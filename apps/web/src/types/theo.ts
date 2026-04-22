@@ -2,7 +2,8 @@ export type TheoIntent =
   | 'recommend_movie'
   | 'recommend_duo'
   | 'surprise_me'
-  | 'out_of_scope';
+  | 'out_of_scope'
+  | 'family_chat';
 
 export type TheoTipoFilter = 'filme' | 'serie' | 'livro';
 

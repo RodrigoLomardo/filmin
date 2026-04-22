@@ -31,7 +31,7 @@ export class TheoController {
     @Body() dto: TheoQueryDto,
   ) {
     const groupId = this.requireGroupId(user);
-    return this.theoService.query(dto, groupId, user.groupTipo);
+    return this.theoService.query(dto, groupId, user.groupTipo, user.email);
   }
 
   @Delete('session/:sessionId')
