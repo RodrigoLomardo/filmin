@@ -31,4 +31,5 @@ export interface RetroData {
   };
   screenTime: number;
   streak: number;
+  streakTipo: 'daily' | 'weekend' | 'monthly';
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WatchItem } from '../watch-items/entities/watch-item.entity';
+import { Streak } from '../streak/streak.entity';
 import { WatchItemStatus } from '../../common/enums/watch-item-status.enum';
 import { WatchItemTipo } from '../../common/enums/watch-item-tipo.enum';
 import { GroupTipo } from '../../common/enums/group-tipo.enum';
@@ -12,6 +13,8 @@ export class StatsService {
   constructor(
     @InjectRepository(WatchItem)
     private readonly watchItemRepo: Repository<WatchItem>,
+    @InjectRepository(Streak)
+    private readonly streakRepo: Repository<Streak>,
   ) {}
 
   async getRetrospective(groupId: string, period: RetroPeriod, groupTipo: GroupTipo | null) {
@@ -104,15 +107,11 @@ export class StatsService {
       return total;
     }, 0);
 
-    const dates = items
-      .filter((i) => i.dataAssistida)
-      .map((i) => new Date(i.dataAssistida!).toISOString().slice(0, 10))
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .sort();
+    const streakRecord = await this.streakRepo.findOne({ where: { groupId } });
+    const streak = streakRecord?.maiorSequencia ?? 0;
+    const streakTipo = streakRecord?.tipo ?? 'daily';
 
-    const streak = this.calculateStreak(dates);
-
-    return { totalItems, byTipo, genres, ratings, highlights, screenTime, streak };
+    return { totalItems, byTipo, genres, ratings, highlights, screenTime, streak, streakTipo };
   }
 
   private getStartDate(period: RetroPeriod): Date | null {
@@ -132,21 +131,4 @@ export class StatsService {
     return null;
   }
 
-  private calculateStreak(sortedDates: string[]): number {
-    if (sortedDates.length === 0) return 0;
-    let maxStreak = 1;
-    let current = 1;
-    for (let i = 1; i < sortedDates.length; i++) {
-      const prev = new Date(sortedDates[i - 1]);
-      const curr = new Date(sortedDates[i]);
-      const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86_400_000);
-      if (diffDays === 1) {
-        current++;
-        if (current > maxStreak) maxStreak = current;
-      } else if (diffDays > 1) {
-        current = 1;
-      }
-    }
-    return maxStreak;
-  }
 }

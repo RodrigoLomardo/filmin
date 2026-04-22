@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useCounted } from '../use-counted';
+import { STREAK_LABELS } from '../constants';
 import type { RetroData } from '@/types/stats';
 
 interface SlideStreakProps {
@@ -11,6 +12,7 @@ interface SlideStreakProps {
 
 export function SlideStreak({ data, active }: SlideStreakProps) {
   const streak = useCounted(data.streak, active, 900);
+  const labels = STREAK_LABELS[data.streakTipo];
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 px-8 text-center">
@@ -35,7 +37,7 @@ export function SlideStreak({ data, active }: SlideStreakProps) {
             {streak}
           </span>
           <span className="text-lg text-zinc-400">
-            {data.streak === 1 ? 'dia' : 'dias'}
+            {data.streak === 1 ? labels.singular : labels.plural}
           </span>
         </div>
       </motion.div>
@@ -46,7 +48,7 @@ export function SlideStreak({ data, active }: SlideStreakProps) {
         animate={active ? { opacity: 1 } : { opacity: 0 }}
         transition={{ delay: 0.5 }}
       >
-        assistindo dias consecutivos
+        {labels.subtitle}
       </motion.p>
     </div>
   );
