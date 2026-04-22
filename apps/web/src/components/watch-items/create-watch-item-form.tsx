@@ -432,11 +432,21 @@ export function CreateWatchItemForm() {
     [tipo, status],
   );
 
+  function autoFillGeneros(generosNomes: string[]) {
+    if (!generosNomes.length || !generos.length) return;
+    const matched = generosNomes
+      .map((nome) => generos.find((g) => g.nome.toLowerCase() === nome.toLowerCase()))
+      .filter((g): g is typeof generos[number] => g !== undefined)
+      .map((g) => g.id);
+    if (matched.length) setGenerosIds(matched);
+  }
+
   async function fillFromTmdb(result: TmdbResult) {
     setTitulo(result.titulo);
     setTituloOriginal(result.tituloOriginal);
     if (result.anoLancamento) setAnoLancamento(String(result.anoLancamento));
     if (result.posterUrl) setPosterUrl(result.posterUrl);
+    autoFillGeneros(result.generosNomes);
 
     if (result.tipo === 'serie') {
       try {
@@ -460,6 +470,7 @@ export function CreateWatchItemForm() {
     setTituloOriginal('');
     if (result.anoPublicacao) setAnoLancamento(String(result.anoPublicacao));
     if (result.imagemUrl) setPosterUrl(result.imagemUrl);
+    autoFillGeneros(result.generosNomes);
   }
 
   function toggleGenero(id: string) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { PERIOD_LABELS } from '../constants';
+import { PERIOD_LABELS, STREAK_LABELS } from '../constants';
 import type { RetroData, RetroPeriod } from '@/types/stats';
 
 interface SlideShareProps {
@@ -18,12 +18,14 @@ function buildStats(data: RetroData) {
         ? data.ratings.userA.toFixed(1)
         : null;
 
+  const streakShort = STREAK_LABELS[data.streakTipo].short;
+
   return [
     { label: 'itens',  value: String(data.totalItems) },
     { label: 'horas',  value: String(data.screenTime) },
     { label: 'gênero', value: data.genres.top ?? '—' },
     { label: 'nota',   value: avgRating ?? '—' },
-    { label: 'streak', value: data.streak > 0 ? `${data.streak}d` : '—' },
+    { label: 'streak', value: data.streak > 0 ? `${data.streak}${streakShort}` : '—' },
     { label: 'melhor', value: data.highlights.best?.titulo ?? '—' },
   ];
 }

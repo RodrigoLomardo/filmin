@@ -5,4 +5,5 @@ export interface BookResult {
   anoPublicacao: number | null;
   descricao: string | null;
   imagemUrl: string | null;
+  generosNomes: string[];
 }

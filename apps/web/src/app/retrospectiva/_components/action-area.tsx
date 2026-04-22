@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { STREAK_LABELS } from '@/components/retrospectiva/constants';
 import type { RetroData } from '@/types/stats';
 
 interface ActionAreaProps {
@@ -44,7 +45,7 @@ function ReadyState({ data, onStart }: { data: RetroData; onStart: () => void })
         <div className="flex justify-between">
           <PreviewStat label="itens" value={String(data.totalItems)} />
           <PreviewStat label="horas de tela" value={String(data.screenTime)} />
-          <PreviewStat label="streak" value={`${data.streak}d`} />
+          <PreviewStat label="streak" value={data.streak > 0 ? `${data.streak}${STREAK_LABELS[data.streakTipo].short}` : '—'} />
         </div>
       </div>
 

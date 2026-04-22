@@ -5,6 +5,8 @@ export interface TmdbMovieRaw {
   release_date?: string;
   poster_path?: string | null;
   overview?: string;
+  genre_ids?: number[];
+  genres?: { id: number; name: string }[];
 }
 
 export interface TmdbTvRaw {
@@ -15,6 +17,8 @@ export interface TmdbTvRaw {
   poster_path?: string | null;
   overview?: string;
   number_of_seasons?: number;
+  genre_ids?: number[];
+  genres?: { id: number; name: string }[];
 }
 
 export interface TmdbSearchResult {
@@ -26,4 +30,5 @@ export interface TmdbSearchResult {
   overview: string | null;
   tipo: 'filme' | 'serie';
   totalTemporadas?: number | null;
+  generosNomes: string[];
 }

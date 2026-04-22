@@ -7,4 +7,5 @@ export interface TmdbResult {
   overview: string | null;
   tipo: 'filme' | 'serie';
   totalTemporadas?: number | null;
+  generosNomes: string[];
 }

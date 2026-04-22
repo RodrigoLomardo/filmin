@@ -117,49 +117,6 @@ function FloatInput({
   );
 }
 
-function FloatTextarea({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  const floated = focused || value !== '';
-
-  return (
-    <div className="relative">
-      <motion.label
-        animate={{
-          top: floated ? '10px' : '18px',
-          fontSize: floated ? '10px' : '14px',
-          color: focused ? 'rgb(236 72 153)' : floated ? 'rgb(113 113 122)' : 'rgb(82 82 91)',
-          letterSpacing: floated ? '0.08em' : '0',
-        }}
-        transition={{ duration: 0.18, ease: 'easeOut' as const }}
-        className="pointer-events-none absolute left-4 z-10 font-semibold uppercase leading-none"
-      >
-        {label}
-      </motion.label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        rows={3}
-        className="w-full resize-none rounded-2xl bg-zinc-900 px-4 pb-4 pt-9 text-sm text-white outline-none"
-        style={{
-          boxShadow: focused
-            ? '0 0 0 1.5px rgb(236,72,153)'
-            : '0 0 0 1px rgb(39,39,42)',
-          transition: 'box-shadow 0.18s ease',
-        }}
-      />
-    </div>
-  );
-}
 
 function NoteCounter({
   label,
@@ -260,9 +217,6 @@ export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }:
   const [status, setStatus] = useState<WatchItemStatus>(item.status);
   const [notaDele, setNotaDele] = useState(String(item.notaDele ?? ''));
   const [notaDela, setNotaDela] = useState(String(item.notaDela ?? ''));
-  const [dataAssistida, setDataAssistida] = useState(item.dataAssistida?.slice(0, 10) ?? '');
-  const [observacoes, setObservacoes] = useState(item.observacoes ?? '');
-  const [posterUrl, setPosterUrl] = useState(item.posterUrl ?? '');
   const [generosIds, setGenerosIds] = useState<string[]>(item.generos.map((g) => g.id));
   const [errorMessage, setErrorMessage] = useState('');
   const [genreAlert, setGenreAlert] = useState(false);
@@ -299,9 +253,9 @@ export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }:
         status,
         notaDele: shouldShowNotas && notaDele ? Number(notaDele) : undefined,
         notaDela: shouldShowNotas && notaDela ? Number(notaDela) : undefined,
-        dataAssistida: dataAssistida || undefined,
-        observacoes: observacoes || undefined,
-        posterUrl: posterUrl || undefined,
+        dataAssistida: item.dataAssistida || undefined,
+        observacoes: item.observacoes || undefined,
+        posterUrl: item.posterUrl || undefined,
         generosIds,
       });
 
@@ -539,21 +493,11 @@ export function EditWatchItemForm({ item, gallery, onSuccess, onPendingChange }:
         )}
       </AnimatePresence>
 
-      {/* ── Detalhes ── */}
-      <motion.section custom={2} initial="hidden" animate="visible" variants={fadeUp}>
-        <Divider label="Detalhes" />
-        <div className="space-y-3">
-          <FloatInput label="Data assistida" value={dataAssistida} onChange={setDataAssistida} type="date" />
-          <FloatInput label="Poster URL" value={posterUrl} onChange={setPosterUrl} type="url" />
-          <FloatTextarea label="Observações" value={observacoes} onChange={setObservacoes} />
-        </div>
-      </motion.section>
-
       {/* ── Gêneros ── */}
       {generos.length > 0 && (
         <motion.section
           id="edit-generos-section"
-          custom={3}
+          custom={2}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
