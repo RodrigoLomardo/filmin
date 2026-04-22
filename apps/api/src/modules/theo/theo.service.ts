@@ -7,7 +7,9 @@ import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import { TheoGroqService } from './theo-groq.service';
 import { TheoQueryDto } from './dto/theo-query.dto';
 import { TheoRecommendationService } from './theo-recommendation.service';
+import { TheoMemoryService } from './theo-memory.service';
 import { parseIntent } from './theo-intent.parser';
+import { extractTitlesFromResponse } from './theo-memory.utils';
 
 export type TheoIntent =
   | 'recommend_movie'
@@ -21,6 +23,10 @@ export interface TheoResponse {
   suggestions?: string[];
 }
 
+function resolveSessionId(dto: TheoQueryDto): string {
+  return dto.sessionId?.trim() || `fallback-${Date.now()}`;
+}
+
 @Injectable()
 export class TheoService {
   constructor(
@@ -28,6 +34,7 @@ export class TheoService {
     private readonly watchItemRepo: Repository<WatchItem>,
     private readonly groqService: TheoGroqService,
     private readonly recommendationService: TheoRecommendationService,
+    private readonly memoryService: TheoMemoryService,
   ) {}
 
   async query(
@@ -35,20 +42,34 @@ export class TheoService {
     groupId: string,
     groupTipo: GroupTipo | null,
   ): Promise<TheoResponse> {
+    const sessionId = resolveSessionId(dto);
     const parsedIntent = parseIntent(dto.message);
     const isDuo = groupTipo === GroupTipo.DUO || parsedIntent.isDuoRequest;
 
-    const [watched, recommendationCtx] = await Promise.all([
+    const [watched, recommendationCtx, memory] = await Promise.all([
       this.fetchWatchedSummary(groupId),
       this.recommendationService.buildContext(groupId, isDuo, parsedIntent),
+      this.memoryService.get(groupId, sessionId),
     ]);
 
-    return this.groqService.ask(dto.message, {
+    const response = await this.groqService.ask(dto.message, {
       watched,
       groupTipo,
       parsedIntent,
       recommendationCtx,
+      memory,
     });
+
+    if (response.intent !== 'out_of_scope') {
+      const newTitles = extractTitlesFromResponse(response);
+      this.memoryService.update(groupId, sessionId, {
+        userMessage: dto.message,
+        assistantMessage: response.message,
+        newTitles,
+      });
+    }
+
+    return response;
   }
 
   private async fetchWatchedSummary(groupId: string): Promise<string[]> {

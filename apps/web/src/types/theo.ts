@@ -9,6 +9,7 @@ export type TheoTipoFilter = 'filme' | 'serie' | 'livro';
 export interface TheoQueryPayload {
   message: string;
   tipoFilter?: TheoTipoFilter;
+  sessionId?: string;
 }
 
 export interface TheoResponse {

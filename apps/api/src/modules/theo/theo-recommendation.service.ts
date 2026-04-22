@@ -67,6 +67,7 @@ export class TheoRecommendationService {
       topGenres,
       parsedIntent.tipoFilter,
       acervoTitles,
+      parsedIntent.moodKeywords,
     );
 
     const duoProfile = isDuo ? this.computeDuoProfile(watched) : undefined;
@@ -105,10 +106,14 @@ export class TheoRecommendationService {
     topGenres: GenreScore[],
     tipoFilter: WatchItemTipo | null,
     acervoTitles: Set<string>,
+    requestedGenres: string[] = [],
   ): Promise<ExternalRecommendation[]> {
-    if (topGenres.length === 0) return [];
+    // Prioriza gêneros pedidos explicitamente; usa histórico como fallback
+    const genreNames = requestedGenres.length > 0
+      ? [...requestedGenres, ...topGenres.slice(0, 3).map((g) => g.nome)]
+      : topGenres.slice(0, 5).map((g) => g.nome);
 
-    const genreNames = topGenres.slice(0, 5).map((g) => g.nome);
+    if (genreNames.length === 0) return [];
     const results: ExternalRecommendation[] = [];
 
     try {

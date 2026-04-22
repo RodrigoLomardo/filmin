@@ -7,3 +7,7 @@ export function queryTheo(payload: TheoQueryPayload): Promise<TheoResponse> {
     body: JSON.stringify(payload),
   });
 }
+
+export function resetTheoSession(sessionId: string): Promise<void> {
+  return apiFetch<void>(`/theo/session/${sessionId}`, { method: 'DELETE' });
+}

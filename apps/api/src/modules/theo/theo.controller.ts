@@ -1,14 +1,27 @@
-import { Body, Controller, ForbiddenException, Post, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Param,
+  Post,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { TheoQueryDto } from './dto/theo-query.dto';
 import { TheoService } from './theo.service';
+import { TheoMemoryService } from './theo-memory.service';
 
 @ApiTags('theo')
 @Controller('theo')
 export class TheoController {
-  constructor(private readonly theoService: TheoService) {}
+  constructor(
+    private readonly theoService: TheoService,
+    private readonly memoryService: TheoMemoryService,
+  ) {}
 
   @Post('query')
   @ApiOperation({ summary: 'Envia mensagem ao Theo e recebe resposta orquestrada via IA' })
@@ -19,6 +32,17 @@ export class TheoController {
   ) {
     const groupId = this.requireGroupId(user);
     return this.theoService.query(dto, groupId, user.groupTipo);
+  }
+
+  @Delete('session/:sessionId')
+  @ApiOperation({ summary: 'Reseta a memória de uma sessão do Theo' })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão a ser resetada' })
+  resetSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sessionId') sessionId: string,
+  ) {
+    const groupId = this.requireGroupId(user);
+    return this.memoryService.reset(groupId, sessionId);
   }
 
   private requireGroupId(user: AuthenticatedUser): string {

@@ -5,12 +5,14 @@ import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import type { TheoIntent, TheoResponse } from './theo.service';
 import type { ParsedIntent } from './theo-intent.parser';
 import type { RecommendationContext } from './theo-recommendation.service';
+import type { MemorySnapshot } from './theo-memory.service';
 
 export interface TheoWatchContext {
   watched: string[];
   groupTipo: GroupTipo | null;
   parsedIntent: ParsedIntent;
   recommendationCtx: RecommendationContext;
+  memory: MemorySnapshot;
 }
 
 const BASE_SYSTEM_PROMPT = `Você é o Theo — assistente de decisão do Filmin, um app pessoal de gerenciamento de filmes, séries e livros.
@@ -23,16 +25,49 @@ Ajudar o usuário a decidir o que assistir ou ler, usando os dados do acervo del
 2. Se a pergunta for fora do escopo (política, esportes, ciência, culinária, etc.), diga educadamente que não pode ajudar com isso e redirecione.
 3. Responda SEMPRE em português brasileiro.
 4. Seja direto, caloroso e conciso — máximo 2 a 3 frases.
-5. Nunca invente títulos. Use APENAS títulos da lista "Quero assistir" ou da lista de recomendações externas fornecida no contexto.
-6. Prefira sempre os candidatos do "Quero assistir". Use recomendações externas quando o usuário pedir algo novo ou quando o acervo estiver vazio.
-7. Quando sugerir um título externo, mencione que é uma sugestão nova fora do acervo.
 
-## Formato de resposta (JSON estrito, sem markdown)
+## Regra central de recomendação
+SEMPRE recomende no MÍNIMO 3 títulos por pedido. Aja imediatamente — nunca peça permissão, nunca pergunte se o usuário quer sugestões externas, nunca anuncie o que vai fazer. Apenas entregue a recomendação.
+
+## Como compor as 3+ recomendações
+- SE houver candidatos do acervo ("Quero assistir") que batam com o pedido: misture acervo + externas (priorize acervo, complete com externas até chegar em no mínimo 3).
+- SE NÃO houver candidatos do acervo que batam com o pedido: use direto externas + conhecimento próprio, sem mencionar "não há no acervo" — apenas recomende.
+- SE nem acervo nem externas tiverem o gênero pedido: use seu conhecimento próprio para sugerir 3 títulos populares que batam com o pedido.
+
+## Proibido
+- NUNCA diga "posso sugerir externas?", "quer que eu busque fora do acervo?", "não há opções no acervo" ou variantes. Apenas recomende.
+- NUNCA recuse um pedido válido.
+- NUNCA sugira títulos de gêneros diferentes do pedido.
+- NUNCA repita títulos já listados em "Títulos já recomendados nesta sessão".
+- NUNCA entregue menos de 3 títulos em uma recomendação.
+
+## Uso da memória de conversa
+- O histórico de mensagens anteriores está incluído nesta conversa.
+- Use-o para entender follow-ups ("outra opção", "algo mais curto", "me sugira externos").
+- Se o usuário pediu algo específico antes (ex: comédia leve) e agora pede variações, MANTENHA o filtro de gênero original.
+
+## Formato de resposta
+Retorne SEMPRE um JSON válido (sem wrapper de markdown):
 {
   "intent": "recommend_movie" | "recommend_duo" | "surprise_me" | "out_of_scope",
-  "message": "sua resposta aqui",
+  "message": "sua resposta aqui (pode conter markdown)",
   "suggestions": ["sugestão 1", "sugestão 2"]
 }
+
+## Estrutura do campo "message"
+SEMPRE use uma TABELA markdown com as colunas "Título", "Origem" e "Sobre" para listar as recomendações:
+
+  Breve frase introdutória (1 linha, sem anunciar origem).
+
+  | Título | Origem | Sobre |
+  |--------|--------|-------|
+  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
+  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
+  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
+
+- Mínimo 3 linhas. Máximo 5 linhas.
+- Coluna "Origem": use "Acervo" para títulos da lista "Quero assistir"; use "Externa" para títulos fora do acervo.
+- Use quebras de linha reais (\\n) entre a frase introdutória e a tabela.
 
 O campo "suggestions" deve ter no máximo 4 itens curtos (chips de ação), ou array vazio.`;
 
@@ -108,6 +143,12 @@ function buildContextText(ctx: TheoWatchContext): string {
     lines.push(`Mood detectado na mensagem: ${ctx.parsedIntent.moodKeywords.join(', ')}`);
   }
 
+  if (ctx.memory.recentTitles.length > 0) {
+    lines.push(
+      `\nTítulos já recomendados nesta sessão (NÃO repetir): ${ctx.memory.recentTitles.join(', ')}`,
+    );
+  }
+
   return lines.join('\n');
 }
 
@@ -131,6 +172,11 @@ export class TheoGroqService {
       ? `${BASE_SYSTEM_PROMPT}${DUO_ADDENDUM}\n\n## Contexto do usuário\n${contextText}`
       : `${BASE_SYSTEM_PROMPT}\n\n## Contexto do usuário\n${contextText}`;
 
+    const historyMessages = context.memory.conversationHistory.map((turn) => ({
+      role: turn.role as 'user' | 'assistant',
+      content: turn.content,
+    }));
+
     try {
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
@@ -139,6 +185,7 @@ export class TheoGroqService {
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: systemPrompt },
+          ...historyMessages,
           { role: 'user', content: userMessage },
         ],
       });

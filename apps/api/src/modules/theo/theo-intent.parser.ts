@@ -31,20 +31,27 @@ const MOOD_KEYWORDS = [
   'documentário', 'fantasia', 'thriller', 'mistério', 'musical',
 ];
 
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 export function parseIntent(message: string): ParsedIntent {
-  const lower = message.toLowerCase();
+  const normalized = normalize(message);
 
   let tipoFilter: WatchItemTipo | null = null;
   for (const [keyword, tipo] of Object.entries(TIPO_MAP)) {
-    if (lower.includes(keyword)) {
+    if (normalized.includes(normalize(keyword))) {
       tipoFilter = tipo;
       break;
     }
   }
 
-  const isDuoRequest = DUO_KEYWORDS.some((kw) => lower.includes(kw));
+  const isDuoRequest = DUO_KEYWORDS.some((kw) => normalized.includes(normalize(kw)));
 
-  const moodKeywords = MOOD_KEYWORDS.filter((kw) => lower.includes(kw));
+  const moodKeywords = MOOD_KEYWORDS.filter((kw) => normalized.includes(normalize(kw)));
 
   return { tipoFilter, isDuoRequest, moodKeywords };
 }

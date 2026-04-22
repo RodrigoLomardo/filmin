@@ -4,13 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUp, RotateCcw } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { queryTheo } from '@/lib/api/theo';
+import { queryTheo, resetTheoSession } from '@/lib/api/theo';
 import { TheoIntro } from './theo-intro';
 import { TheoServices } from './theo-services';
+import { TheoMarkdown } from './theo-markdown';
 import type { TheoMessage, TheoTipoFilter } from '@/types/theo';
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 9);
+}
+
+function generateSessionId(): string {
+  return `sess-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 interface TheoChatProps {
@@ -21,6 +26,7 @@ export function TheoChat({ userName }: TheoChatProps) {
   const [messages, setMessages] = useState<TheoMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [input, setInput] = useState('');
+  const [sessionId, setSessionId] = useState<string>(generateSessionId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasMessages = messages.length > 0 || isThinking;
@@ -73,7 +79,7 @@ export function TheoChat({ userName }: TheoChatProps) {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-      mutate({ message: text.trim(), tipoFilter });
+      mutate({ message: text.trim(), tipoFilter, sessionId });
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     },
     [isThinking, mutate],
@@ -102,9 +108,11 @@ export function TheoChat({ userName }: TheoChatProps) {
   }
 
   function handleReset() {
+    resetTheoSession(sessionId).catch(() => undefined);
     setMessages([]);
     setIsThinking(false);
     setInput('');
+    setSessionId(generateSessionId());
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -153,7 +161,7 @@ export function TheoChat({ userName }: TheoChatProps) {
                         : 'rounded-2xl rounded-bl-sm bg-zinc-900 px-4 py-2.5 text-zinc-100 ring-1 ring-white/5'
                     }`}
                   >
-                    {msg.text}
+                    {msg.role === 'theo' ? <TheoMarkdown content={msg.text} /> : msg.text}
 
                     {msg.suggestions && msg.suggestions.length > 0 && (
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
