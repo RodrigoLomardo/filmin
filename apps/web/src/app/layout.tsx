@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   icons: {
     icon: '/assets/logo-filmin.png',
   },
+  other: {
+    // Desativa o tradutor automático do Google Chrome e Safari
+    'google': 'notranslate',
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full">
+    <html lang="pt-BR" translate="no" className="h-full">
       <link rel="apple-touch-icon" href="/assets/logo-filmin.png" />
       <body className="h-full overflow-hidden bg-black text-white antialiased">
         <Providers>

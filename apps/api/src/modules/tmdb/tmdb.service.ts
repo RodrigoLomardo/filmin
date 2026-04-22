@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { TmdbMovieRaw, TmdbSearchResult, TmdbTvRaw } from './tmdb.types';
 import { mapMovie, mapTv } from './tmdb.mapper';
+import { GENRE_NAME_TO_TMDB_IDS } from './tmdb.mapper';
 import { TmdbTipo } from './dto/tmdb-search-query.dto';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
@@ -26,6 +27,34 @@ export class TmdbService {
 
     const data = await this.fetchWithRetry<{ results: (TmdbMovieRaw | TmdbTvRaw)[] }>(url);
     const results = data.results.slice(0, MAX_RESULTS);
+
+    return tipo === TmdbTipo.FILME
+      ? (results as TmdbMovieRaw[]).map(mapMovie)
+      : (results as TmdbTvRaw[]).map(mapTv);
+  }
+
+  async discoverByGenres(
+    genreNames: string[],
+    tipo: TmdbTipo,
+    limit = 8,
+  ): Promise<TmdbSearchResult[]> {
+    const genreIds = [...new Set(
+      genreNames.flatMap((name) => GENRE_NAME_TO_TMDB_IDS[name] ?? []),
+    )];
+
+    if (genreIds.length === 0) return [];
+
+    const endpoint = tipo === TmdbTipo.FILME ? 'discover/movie' : 'discover/tv';
+    const url = this.buildUrl(`${TMDB_BASE}/${endpoint}`, {
+      with_genres: genreIds.slice(0, 3).join(','),
+      language: 'pt-BR',
+      sort_by: 'vote_average.desc',
+      'vote_count.gte': '100',
+      page: '1',
+    });
+
+    const data = await this.fetchWithRetry<{ results: (TmdbMovieRaw | TmdbTvRaw)[] }>(url);
+    const results = data.results.slice(0, limit);
 
     return tipo === TmdbTipo.FILME
       ? (results as TmdbMovieRaw[]).map(mapMovie)
