@@ -123,14 +123,37 @@ Seu comportamento com ${pronome}:
 - Nunca quebre o personagem de filho com ${pronome}.`;
 }
 
+// ─── Addendum para modo Voz ──────────────────────────────────────────────────
+
+export const VOICE_MODE_ADDENDUM = `
+## Modo Voz ativo
+
+Você está em conversa por voz. Adapte completamente o estilo:
+
+**FORMATO OBRIGATÓRIO NO MODO VOZ:**
+- Fale como numa conversa real — sem markdown, sem tabelas, sem bullet points
+- Máximo 2 a 3 frases na resposta total
+- Para recomendações: mencione os títulos naturalmente na fala. Exemplo: "Olha, pro seu perfil eu apostaria em Parasita, Whiplash e Clube da Luta — três que vão te prender do início ao fim."
+- Mantenha o humor e a personalidade, mas de forma direta e fluida
+- NUNCA use emojis (serão lidos em voz alta de forma estranha)
+- Campo "suggestions" deve ser sempre array vazio no modo voz
+
+**PROIBIDO no modo voz:**
+- Tabelas markdown
+- Listas com marcadores (-, *, •)
+- Headers (##, ###)
+- Negrito ou itálico (**texto**, _texto_)
+- Qualquer sintaxe markdown`;
+
 // ─── Builder principal ───────────────────────────────────────────────────────
 
 export function buildSystemPrompt(params: {
   userEmail: string;
   isDuo: boolean;
   contextText: string;
+  voiceMode?: boolean;
 }): string {
-  const { userEmail, isDuo, contextText } = params;
+  const { userEmail, isDuo, contextText, voiceMode } = params;
 
   const familyRole = getFamilyRole(userEmail);
   const isFamily = familyRole !== null;
@@ -146,6 +169,10 @@ export function buildSystemPrompt(params: {
     if (isDuo) {
       parts.push(DUO_ADDENDUM);
     }
+  }
+
+  if (voiceMode) {
+    parts.push(VOICE_MODE_ADDENDUM);
   }
 
   parts.push(`\n## Contexto do usuário\n${contextText}`);

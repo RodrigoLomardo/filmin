@@ -61,11 +61,12 @@ export class TheoService {
       recommendationCtx,
       memory,
       userEmail,
+      voiceMode: dto.voiceMode,
     });
 
     if (response.intent !== 'out_of_scope') {
       const newTitles = extractTitlesFromResponse(response);
-      this.memoryService.update(groupId, sessionId, {
+      await this.memoryService.update(groupId, sessionId, {
         userMessage: dto.message,
         assistantMessage: response.message,
         newTitles,

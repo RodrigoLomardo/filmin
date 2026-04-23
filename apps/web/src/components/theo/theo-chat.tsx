@@ -8,6 +8,8 @@ import { queryTheo, resetTheoSession } from '@/lib/api/theo';
 import { TheoIntro } from './theo-intro';
 import { TheoServices } from './theo-services';
 import { TheoMarkdown } from './theo-markdown';
+import { TheoVoiceFab } from './theo-voice-fab';
+import { TheoVoiceChat } from './theo-voice-chat';
 import type { TheoMessage, TheoTipoFilter } from '@/types/theo';
 
 function generateId(): string {
@@ -27,6 +29,7 @@ export function TheoChat({ userName }: TheoChatProps) {
   const [isThinking, setIsThinking] = useState(false);
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string>(generateSessionId);
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasMessages = messages.length > 0 || isThinking;
@@ -118,8 +121,26 @@ export function TheoChat({ userName }: TheoChatProps) {
     }
   }
 
+  function handleTranscribe(text: string) {
+    setInput(text);
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+      ta.focus();
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <AnimatePresence>
+        {isVoiceChatOpen && (
+          <TheoVoiceChat
+            isOpen={isVoiceChatOpen}
+            onClose={() => setIsVoiceChatOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       {/* Messages / Empty state */}
       <div className="flex-1 overflow-y-auto px-4">
         <AnimatePresence mode="wait">
@@ -245,6 +266,11 @@ export function TheoChat({ userName }: TheoChatProps) {
             className="max-h-[120px] flex-1 resize-none bg-transparent text-sm leading-relaxed text-white placeholder-zinc-600 outline-none"
           />
           <div className="flex shrink-0 items-center gap-1.5">
+            <TheoVoiceFab
+              onOpenVoiceChat={() => setIsVoiceChatOpen(true)}
+              onTranscribe={handleTranscribe}
+              disabled={isThinking}
+            />
             <AnimatePresence>
               {hasMessages && (
                 <motion.button

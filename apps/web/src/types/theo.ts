@@ -11,6 +11,7 @@ export interface TheoQueryPayload {
   message: string;
   tipoFilter?: TheoTipoFilter;
   sessionId?: string;
+  voiceMode?: boolean;
 }
 
 export interface TheoResponse {

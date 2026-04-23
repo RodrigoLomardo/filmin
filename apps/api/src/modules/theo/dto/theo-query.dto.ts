@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { WatchItemTipo } from '../../../common/enums/watch-item-tipo.enum';
 
 export class TheoQueryDto {
@@ -23,4 +23,11 @@ export class TheoQueryDto {
   @IsOptional()
   @MaxLength(64)
   sessionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Modo voz — resposta adaptada para fala sem markdown',
+  })
+  @IsBoolean()
+  @IsOptional()
+  voiceMode?: boolean;
 }

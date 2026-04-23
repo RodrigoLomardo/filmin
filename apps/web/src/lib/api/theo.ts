@@ -18,3 +18,10 @@ export function debateItems(payload: TheoDebatePayload): Promise<TheoDebateRespo
     body: JSON.stringify(payload),
   });
 }
+
+export function transcribeAudio(audio: string, mimeType: string): Promise<{ transcript: string }> {
+  return apiFetch<{ transcript: string }>('/theo/transcribe', {
+    method: 'POST',
+    body: JSON.stringify({ audio, mimeType }),
+  });
+}

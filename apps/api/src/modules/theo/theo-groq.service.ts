@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Groq from 'groq-sdk';
+import Groq, { toFile } from 'groq-sdk';
 import { GroupTipo } from '../../common/enums/group-tipo.enum';
 import type { TheoIntent, TheoResponse } from './theo.service';
 import type { ParsedIntent } from './theo-intent.parser';
@@ -15,6 +15,7 @@ export interface TheoWatchContext {
   recommendationCtx: RecommendationContext;
   memory: MemorySnapshot;
   userEmail: string;
+  voiceMode?: boolean;
 }
 
 function buildContextText(ctx: TheoWatchContext): string {
@@ -110,6 +111,7 @@ export class TheoGroqService {
       userEmail: context.userEmail,
       isDuo,
       contextText,
+      voiceMode: context.voiceMode,
     });
 
     const historyMessages = context.memory.conversationHistory.map((turn) => ({
@@ -146,6 +148,28 @@ export class TheoGroqService {
         message: 'Estou com dificuldades agora. Tente novamente em instantes.',
         suggestions: [],
       };
+    }
+  }
+
+  async transcribe(base64: string, mimeType: string): Promise<{ transcript: string }> {
+    try {
+      // Strip codec params (e.g. "audio/webm;codecs=opus" → "audio/webm")
+      // so the MIME type is clean for file naming and Groq processing
+      const mimeBase = mimeType.split(';')[0]?.trim() ?? 'audio/webm';
+      const ext      = mimeBase.split('/')[1] ?? 'webm';
+
+      const buffer = Buffer.from(base64, 'base64');
+      const file   = await toFile(buffer, `audio.${ext}`, { type: mimeBase });
+
+      const result = await this.groq.audio.transcriptions.create({
+        file,
+        model   : 'whisper-large-v3-turbo',
+        language: 'pt',
+      });
+      return { transcript: result.text ?? '' };
+    } catch (err) {
+      this.logger.error('Groq Whisper error', err);
+      throw new Error('Falha na transcrição de áudio.');
     }
   }
 }

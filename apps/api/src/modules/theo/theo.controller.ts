@@ -13,7 +13,9 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { TheoQueryDto } from './dto/theo-query.dto';
 import { TheoDebateDto } from './dto/theo-debate.dto';
+import { TheoTranscribeDto } from './dto/theo-transcribe.dto';
 import { TheoService } from './theo.service';
+import { TheoGroqService } from './theo-groq.service';
 import { TheoMemoryService } from './theo-memory.service';
 import { TheoDebateService } from './theo-debate.service';
 
@@ -22,6 +24,7 @@ import { TheoDebateService } from './theo-debate.service';
 export class TheoController {
   constructor(
     private readonly theoService: TheoService,
+    private readonly groqService: TheoGroqService,
     private readonly memoryService: TheoMemoryService,
     private readonly debateService: TheoDebateService,
   ) {}
@@ -46,6 +49,17 @@ export class TheoController {
   ) {
     const groupId = this.requireGroupId(user);
     return this.debateService.debate(dto.itemAId, dto.itemBId, groupId);
+  }
+
+  @Post('transcribe')
+  @ApiOperation({ summary: 'Transcreve áudio via Groq Whisper (base64)' })
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  transcribe(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: TheoTranscribeDto,
+  ): Promise<{ transcript: string }> {
+    this.requireGroupId(user);
+    return this.groqService.transcribe(dto.audio, dto.mimeType);
   }
 
   @Delete('session/:sessionId')
