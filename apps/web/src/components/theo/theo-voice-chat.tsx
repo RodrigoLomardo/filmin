@@ -15,6 +15,36 @@ const SILENCE_DURATION    = 1100;  // ms of silence → auto-send
 const MIN_SPEECH_MS       = 250;   // ignore bursts shorter than this
 const POST_SPEECH_DELAY   = 350;   // ms wait after Theo speaks before listening
 
+// ── Sanitize text for TTS ────────────────────────────────────────────────────
+
+function sanitizeForSpeech(raw: string): string {
+  return raw
+    // Remove markdown tables entirely
+    .replace(/\|[^\n]*\|/g, '')
+    // Remove table separators (|---|---|)
+    .replace(/\|[-: ]+\|[-| :]*\n?/g, '')
+    // Remove headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold and italic (**x**, *x*, __x__, _x_)
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    // Remove bullet/list markers at start of line
+    .replace(/^[\s]*[-*•]\s+/gm, '')
+    // Remove numbered list markers
+    .replace(/^\s*\d+\.\s+/gm, '')
+    // Remove parenthetical labels like (Acervo), (do seu acervo), (Externa)
+    .replace(/\(do seu acervo\)/gi, '')
+    .replace(/\((acervo|externa)\)/gi, '')
+    // Remove column name artifacts just in case
+    .replace(/\b(Título|Origem|Sobre|Acervo|Externa)\b\s*[|:]/gi, '')
+    // Replace em dash / en dash with comma + space for natural pause
+    .replace(/\s*[—–]\s*/g, ', ')
+    // Collapse multiple spaces and blank lines
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const GREETINGS = [
@@ -331,8 +361,10 @@ export function TheoVoiceChat({ isOpen, onClose }: Props) {
 
   // ── TTS ────────────────────────────────────────────────────────────────────
 
-  function theoSpeak(text: string) {
+  function theoSpeak(rawText: string) {
     if (!activeRef.current || typeof window === 'undefined') return;
+
+    const text = sanitizeForSpeech(rawText);
 
     // Stop recording while Theo speaks (prevents echo capture)
     stopRecorderNow();
@@ -344,8 +376,8 @@ export function TheoVoiceChat({ isOpen, onClose }: Props) {
 
     const utt    = new SpeechSynthesisUtterance(text);
     utt.lang     = 'pt-BR';
-    utt.pitch    = 0.78;
-    utt.rate     = 1.08;
+    utt.pitch    = 0.88;  // slightly lower = more natural, less robotic
+    utt.rate     = 1.08;  // slightly slower = clearer, more human pacing
     utt.volume   = 1.0;
 
     const voice = pickVoice(voicesRef.current);
@@ -354,8 +386,8 @@ export function TheoVoiceChat({ isOpen, onClose }: Props) {
     let settled = false;
 
     // Fallback timeout — Brave blocks speechSynthesis.onend
-    // Estimate: ~12 chars/s at rate 1.08, plus 2s buffer
-    const estimatedMs = Math.max(2500, (text.length / 12) * 1000) + 2000;
+    // Estimate: ~11 chars/s at rate 1.08, plus 2s buffer
+    const estimatedMs = Math.max(2500, (text.length / 11) * 1000) + 2000;
     const fallbackTimer = setTimeout(() => {
       if (!settled) {
         settled = true;

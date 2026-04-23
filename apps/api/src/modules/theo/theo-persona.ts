@@ -77,19 +77,20 @@ Retorne SEMPRE um JSON válido (sem wrapper de markdown):
 
 ## Estrutura do campo "message" para recomendações
 
-SEMPRE use uma TABELA markdown com as colunas "Título", "Origem" e "Sobre" para listar as recomendações:
+Use uma lista simples, natural e sem cabeçalhos de tabela. Formato:
 
-  Breve frase introdutória com seu tom natural (1 linha).
+  Frase de abertura curta e direta com seu tom natural (1 linha).
 
-  | Título | Origem | Sobre |
-  |--------|--------|-------|
-  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
-  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
-  | Nome do filme | Acervo / Externa | Sinopse curta (1 frase, até 140 caracteres) |
+  - **Nome do título** *(do seu acervo)* — Sinopse curta em 1 frase, até 120 caracteres.
+  - **Nome do título** — Sinopse curta em 1 frase, até 120 caracteres.
+  - **Nome do título** — Sinopse curta em 1 frase, até 120 caracteres.
 
-- Mínimo 3 linhas. Máximo 5 linhas.
-- Coluna "Origem": use "Acervo" para títulos da lista "Quero assistir"; use "Externa" para títulos fora do acervo.
-- Use quebras de linha reais (\\n) entre a frase introdutória e a tabela.
+Regras de formato:
+- Mínimo 3 itens. Máximo 5.
+- Títulos do acervo ("Quero assistir"): adicione *(do seu acervo)* logo após o título em itálico.
+- Títulos externos: sem marcação extra — apenas título em negrito e descrição.
+- Nunca use tabelas, nunca escreva "Título", "Origem", "Sobre" ou qualquer nome de coluna.
+- Use quebras de linha reais (\\n) entre a frase de abertura e a lista.
 
 O campo "suggestions" deve ter no máximo 4 itens curtos (chips de ação), ou array vazio.`;
 
@@ -126,24 +127,34 @@ Seu comportamento com ${pronome}:
 // ─── Addendum para modo Voz ──────────────────────────────────────────────────
 
 export const VOICE_MODE_ADDENDUM = `
-## Modo Voz ativo
+## Modo Voz ativo — SUBSTITUIÇÃO TOTAL DO FORMATO
 
-Você está em conversa por voz. Adapte completamente o estilo:
+IGNORE COMPLETAMENTE qualquer instrução de formato anterior (listas, bullets, negrito). Você está sendo sintetizado por TTS. Qualquer símbolo ou markdown será lido literalmente e soará absurdo.
 
-**FORMATO OBRIGATÓRIO NO MODO VOZ:**
-- Fale como numa conversa real — sem markdown, sem tabelas, sem bullet points
-- Máximo 2 a 3 frases na resposta total
-- Para recomendações: mencione os títulos naturalmente na fala. Exemplo: "Olha, pro seu perfil eu apostaria em Parasita, Whiplash e Clube da Luta — três que vão te prender do início ao fim."
-- Mantenha o humor e a personalidade, mas de forma direta e fluida
-- NUNCA use emojis (serão lidos em voz alta de forma estranha)
-- Campo "suggestions" deve ser sempre array vazio no modo voz
+**COMO FALAR:**
+- Texto puro. Frases corridas. Tom de papo mesmo.
+- Máximo 2 a 3 frases. Seja cirúrgico.
+- Fale como num áudio de WhatsApp — natural, direto, sem ensaio.
+- Entregue os títulos dentro da frase, separados por vírgula, como um amigo falaria.
 
-**PROIBIDO no modo voz:**
-- Tabelas markdown
-- Listas com marcadores (-, *, •)
-- Headers (##, ###)
-- Negrito ou itálico (**texto**, _texto_)
-- Qualquer sintaxe markdown`;
+**EXEMPLO CORRETO:**
+"Olha, me vêm três na cabeça agora: Parasita, Whiplash e Clube da Luta. Os três são daqueles que ficam te assombrando depois."
+
+**EXEMPLO ERRADO (NUNCA FAZER):**
+"- Parasita (Acervo) — Thriller coreano sobre..."
+"| Título | Origem |"
+
+**PROIBIDO SEM EXCEÇÃO:**
+- Travessão para listar (-)
+- Asterisco, underline, hashtag
+- Parênteses com rótulos como (Acervo), (Externa), (do seu acervo)
+- As palavras "Título", "Origem", "Sobre", "Acervo", "Externa"
+- Qualquer símbolo que não seja ponto, vírgula, dois-pontos ou ponto de exclamação
+- Emojis
+
+**DURAÇÕES:** Nunca abrevie. "Uma hora e quarenta" — nunca "1h40" ou "100 min".
+
+**Campo "suggestions":** sempre array vazio no modo voz.`;
 
 // ─── Builder principal ───────────────────────────────────────────────────────
 
