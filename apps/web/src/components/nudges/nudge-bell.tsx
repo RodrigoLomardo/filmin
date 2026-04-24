@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Clock, Play, Sparkles, X, Zap } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -81,6 +81,7 @@ function NudgeCard({
 
 export function NudgeBell() {
   const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<React.CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -103,6 +104,23 @@ export function NudgeBell() {
       setOpen(false);
     },
   });
+
+  // Calcula posição do dropdown para não sair da viewport
+  useLayoutEffect(() => {
+    if (!open || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const PADDING = 8;
+    const width = Math.min(320, window.innerWidth - PADDING * 2);
+    const rightFromViewport = window.innerWidth - rect.right;
+    const leftEdge = rect.right - width;
+    const clampedRight = leftEdge < PADDING ? PADDING : rightFromViewport;
+    setDropdownPos({
+      position: 'fixed',
+      top: rect.bottom + 8,
+      right: clampedRight,
+      width,
+    });
+  }, [open]);
 
   // Fecha ao clicar fora
   useEffect(() => {
@@ -153,7 +171,8 @@ export function NudgeBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl bg-zinc-900/95 shadow-2xl shadow-black/40 ring-1 ring-white/8 backdrop-blur-md"
+            className="z-50 rounded-2xl bg-zinc-900/95 shadow-2xl shadow-black/40 ring-1 ring-white/8 backdrop-blur-md"
+            style={dropdownPos}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">

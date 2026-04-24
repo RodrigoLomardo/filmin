@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Film,
   Tv,
@@ -177,100 +177,6 @@ export function AvatarButton({ onClick }: AvatarButtonProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// GroupMembersButton — exportado para page.tsx (apenas duo)
-// ---------------------------------------------------------------------------
-
-export function GroupMembersButton() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const { data: group } = useQuery({
-    queryKey: ['group'],
-    queryFn: getMyGroup,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
-
-  if (group?.tipo !== 'duo') return null;
-
-  const members = [...(group.members ?? [])].sort(
-    (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
-  );
-  const ownerProfileId = members[0]?.profileId;
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10 transition hover:ring-pink-500/60"
-        aria-label="Membros do grupo"
-      >
-        <Users size={16} className="text-zinc-300" />
-        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-900" />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="absolute right-0 top-11 z-50 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl shadow-black/40"
-            initial={{ opacity: 0, scale: 0.94, y: -6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: -6 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 pb-3 pt-4">
-              <Users size={13} className="text-pink-400" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-pink-400">
-                Grupo Duo
-              </span>
-            </div>
-
-            <ul className="flex flex-col gap-0.5 p-2">
-              {members.map((m) => {
-                const isOwner = m.profileId === ownerProfileId;
-                return (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-white/[0.04]"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10">
-                      <span className="text-xs font-semibold text-white">{memberInitial(m)}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-zinc-200">{memberDisplayName(m)}</p>
-                      {isOwner && <p className="text-[10px] font-medium text-pink-400">Owner</p>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {group.createdAt && (
-              <div className="border-t border-[var(--border)] px-4 py-3">
-                <p className="text-[10px] text-zinc-600">
-                  Grupo criado em{' '}
-                  <span className="text-zinc-400">{formatDate(group.createdAt)}</span>
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // ProfileModal — floating card (top-right)
@@ -465,6 +371,50 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
                 />
               </div>
             </FadeRow>
+
+            {/* ── Membros duo ── */}
+            {group?.tipo === 'duo' && (
+              <FadeRow delay={0.13}>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                    <Users size={11} className="text-pink-400" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-pink-400">
+                      Grupo Duo
+                    </span>
+                  </div>
+                  <ul className="flex flex-col gap-0.5 px-2 pb-2">
+                    {[...(group.members ?? [])]
+                      .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime())
+                      .map((m, i) => {
+                        const isOwner = i === 0;
+                        return (
+                          <li
+                            key={m.id}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-white/[0.04]"
+                          >
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10">
+                              <span className="text-xs font-semibold text-white">{memberInitial(m)}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs text-zinc-200">{memberDisplayName(m)}</p>
+                            </div>
+                            {isOwner && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-pink-400">
+                                Owner
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                  {group.createdAt && (
+                    <p className="px-4 pb-3 text-[10px] text-zinc-700">
+                      Criado em <span className="text-zinc-500">{formatDate(group.createdAt)}</span>
+                    </p>
+                  )}
+                </div>
+              </FadeRow>
+            )}
 
             {/* ── Stalkers ── */}
             <FadeRow delay={0.14}>
