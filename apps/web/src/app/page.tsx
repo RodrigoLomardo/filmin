@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { WatchItemsDashboard } from '@/components/watch-items/watch-items-dashboard';
 import { SplashScreen } from '@/components/splash-screen';
 import { MotionDiv } from '@/components/motion';
-import { AvatarButton, GroupMembersButton, ProfileModal } from '@/components/profile-modal';
+import { AvatarButton, ProfileModal } from '@/components/profile-modal';
 import {
   PendingRatingNotificationModal,
   PendingNotificationButton,
@@ -20,8 +20,8 @@ import { usePendingRatings } from '@/lib/hooks/use-pending-ratings';
 import { useNotifications } from '@/lib/hooks/use-notifications';
 import { DuoDissolvedModal } from '@/components/notifications/duo-dissolved-modal';
 import { MemberJoinedToast } from '@/components/notifications/member-joined-toast';
-import { StreakDisplay } from '@/components/streak/streak-display';
 import { NudgeBell } from '@/components/nudges/nudge-bell';
+import { StreakDisplay } from '@/components/streak/streak-display';
 
 
 export default function HomePage() {
@@ -45,7 +45,6 @@ export default function HomePage() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
-  const [streakModalOpen, setStreakModalOpen] = useState(false);
   const autoShownRef = useRef(false);
 
   const pendingItems = usePendingRatings();
@@ -174,8 +173,8 @@ export default function HomePage() {
                 </motion.p>
               </div>
 
-              <div className="flex items-center gap-3 pt-1">
-                <StreakDisplay onModalOpenChange={setStreakModalOpen} />
+              <div className="flex items-center gap-2 pt-1">
+                <StreakDisplay />
                 <div className="h-5 w-px bg-zinc-800" />
                 <NudgeBell />
                 <PendingNotificationButton
@@ -185,11 +184,10 @@ export default function HomePage() {
                 <Link
                   href="/search"
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10 transition hover:ring-pink-500/60"
-                  aria-label="Buscar pessoas"
+                  aria-label="Buscar"
                 >
                   <Search size={15} className="text-zinc-300" />
                 </Link>
-                <GroupMembersButton />
                 <AvatarButton onClick={() => setProfileOpen(true)} />
               </div>
             </MotionDiv>
@@ -198,7 +196,6 @@ export default function HomePage() {
 
             {/* ── FAB Menu ── */}
             <AnimatePresence>
-            {!streakModalOpen && (
             <motion.div
               className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -267,7 +264,6 @@ export default function HomePage() {
                 </motion.div>
               </motion.button>
             </motion.div>
-            )}
             </AnimatePresence>
           </motion.main>
         )}
