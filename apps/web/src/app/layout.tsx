@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" translate="no" className="h-full">
       <link rel="apple-touch-icon" href="/assets/logo-filmin.png" />
-      <body className="h-full overflow-hidden bg-black text-white antialiased">
+      <body className="h-full overflow-hidden bg-black text-white antialiased" suppressHydrationWarning>
         <Providers>
           <GroupGuard>
             <div className="h-full overflow-y-auto overflow-x-hidden overscroll-none">

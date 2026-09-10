@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Clock, Play, Sparkles, X, Zap } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -105,9 +105,8 @@ export function NudgeBell() {
     },
   });
 
-  // Calcula posição do dropdown para não sair da viewport
-  useLayoutEffect(() => {
-    if (!open || !containerRef.current) return;
+  function computeDropdownPos() {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const PADDING = 8;
     const width = Math.min(320, window.innerWidth - PADDING * 2);
@@ -120,7 +119,7 @@ export function NudgeBell() {
       right: clampedRight,
       width,
     });
-  }, [open]);
+  }
 
   // Fecha ao clicar fora
   useEffect(() => {
@@ -141,7 +140,12 @@ export function NudgeBell() {
     <div ref={containerRef} className="relative">
       {/* Bell button */}
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => {
+            if (!v) computeDropdownPos();
+            return !v;
+          });
+        }}
         className="relative flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-white/10 transition hover:ring-pink-500/40"
         aria-label="Notificações do Theo"
       >

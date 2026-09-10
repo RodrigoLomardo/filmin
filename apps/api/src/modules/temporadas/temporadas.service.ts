@@ -165,6 +165,8 @@ export class TemporadasService {
 
     await this.recalculateNotaGeralSerie(temporada.watchItemId);
 
+    void this.streakService.registerActivity(groupId);
+
     return await this.temporadaRepository.findOne({
       where: { id: updatedTemporada.id },
       relations: { watchItem: true },
