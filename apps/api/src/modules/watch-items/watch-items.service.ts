@@ -375,6 +375,7 @@ export class WatchItemsService {
     }
 
     const updated = await this.watchItemRepository.save(watchItem);
+    void this.streakService.registerActivity(watchItem.groupId);
     return updated;
   }
 
