@@ -119,7 +119,7 @@ export class TheoGroqService {
 
     try {
       const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.85,
         top_p: 0.95,
         max_tokens: 500,

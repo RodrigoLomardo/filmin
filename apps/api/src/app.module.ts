@@ -28,9 +28,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
         url: configService.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: false,
-        ssl: configService.get('NODE_ENV') === 'production'
-          ? { rejectUnauthorized: false }
-          : false,
+        // Supabase pooler exige SSL (SNI). Sem isso: ENOIDENTIFIER.
+        ssl: { rejectUnauthorized: false },
       }),
       inject: [ConfigService],
     }),
