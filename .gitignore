@@ -15,7 +15,11 @@ brain.md
 docs/features
 docs/
 context.md
-supabase/*
+# O config.toml do Supabase é versionado para o ambiente local ser reproduzível.
+# Chave privada de assinatura e arquivos temporários ficam em supabase/.gitignore.
+supabase/signing_keys.json
+supabase/.temp
+supabase/.branches
 
 
 .claude/feats/*

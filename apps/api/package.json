@@ -14,7 +14,9 @@
     "migration:create": "npm run typeorm -- migration:create src/database/migrations/manual",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "seed:generos": "ts-node -r tsconfig-paths/register src/seed/seed-generos.ts"
+    "seed:generos": "ts-node -r tsconfig-paths/register src/seed/seed-generos.ts",
+    "seed:dev": "ts-node -r tsconfig-paths/register src/seed/dev/seed-dev.ts",
+    "migration:check": "ts-node -r tsconfig-paths/register src/database/check-migrations.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.17",

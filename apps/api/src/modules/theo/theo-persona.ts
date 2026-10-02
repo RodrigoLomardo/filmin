@@ -3,7 +3,18 @@
  * Modificar aqui reflete imediatamente no comportamento do assistente.
  */
 
-export const FAMILY_EMAILS = ['rlomardo@gmail.com', 'giuliaabragaa@gmail.com'] as const;
+/**
+ * E-mails do Modo Família, configuráveis por ambiente para que usuários de teste
+ * possam exercitar o comportamento em dev. Sem as variáveis, mantém os valores de produção.
+ */
+const FAMILY_EMAIL_PAI = (
+  process.env.FAMILY_EMAIL_PAI ?? 'rlomardo@gmail.com'
+).toLowerCase();
+const FAMILY_EMAIL_MAE = (
+  process.env.FAMILY_EMAIL_MAE ?? 'giuliaabragaa@gmail.com'
+).toLowerCase();
+
+export const FAMILY_EMAILS = [FAMILY_EMAIL_PAI, FAMILY_EMAIL_MAE] as const;
 
 export function isFamilyUser(email: string): boolean {
   return (FAMILY_EMAILS as readonly string[]).includes(email.toLowerCase().trim());
@@ -11,8 +22,8 @@ export function isFamilyUser(email: string): boolean {
 
 export function getFamilyRole(email: string): 'pai' | 'mae' | null {
   const normalized = email.toLowerCase().trim();
-  if (normalized === 'rlomardo@gmail.com') return 'pai';
-  if (normalized === 'giuliaabragaa@gmail.com') return 'mae';
+  if (normalized === FAMILY_EMAIL_PAI) return 'pai';
+  if (normalized === FAMILY_EMAIL_MAE) return 'mae';
   return null;
 }
 

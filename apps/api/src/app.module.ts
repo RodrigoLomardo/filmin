@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD } from '@nestjs/core';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { resolveDatabaseSsl } from './common/config/environment';
 import { AuthModule } from './modules/auth/auth.module';
 import { GenerosModule } from './modules/generos/generos.module';
 import { GroupsModule } from './modules/groups/groups.module';
@@ -28,8 +31,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
         url: configService.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: false,
-        // Supabase pooler exige SSL (SNI). Sem isso: ENOIDENTIFIER.
-        ssl: { rejectUnauthorized: false },
+        // Supabase hospedado exige SSL (SNI); Postgres local não aceita.
+        ssl: resolveDatabaseSsl(configService.get<string>('DATABASE_URL')),
       }),
       inject: [ConfigService],
     }),
@@ -48,11 +51,13 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     TheoModule,
     NudgesModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
