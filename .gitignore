@@ -16,7 +16,6 @@ docs/features
 docs/
 context.md
 supabase/*
-.claude/*
-.claude
+
 
 .claude/feats/*
